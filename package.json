@@ -1,0 +1,26 @@
+{
+  "name": "candidly-automation",
+  "version": "1.0.0",
+  "description": "Playwright automation scripts for Candidly",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "login": "npx playwright test login.spec.ts --headed",
+    "job-posting": "npx playwright test job-posting.spec.ts --headed",
+    "job-AI": "npx playwright test job-AI.spec.ts --headed",
+    "job-posting-document-upload": "npx playwright test job-posting-document-upload.spec.ts --headed",
+    "job-sde3": "npx playwright test job-posting-sde3.spec.ts --headed",
+    "applicants": "npx playwright test applicants.spec.ts --headed",
+    "report": "npx playwright show-report"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@faker-js/faker": "^10.1.0",
+    "@playwright/test": "^1.40.0",
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.0"
+  }
+}
