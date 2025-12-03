@@ -1,6 +1,6 @@
 import { test, expect } from '../fixtures/test-fixtures';
 
-import { testConfig } from '../config/test-config';
+import { testConfig } from '../../config/test-config';
 
 test.describe('Login Automation', () => {
   test('TC-001: should login successfully with valid credentials', { tag: ['@Positive'] }, async ({ page, loginPage, dashboardPage }) => {
