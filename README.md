@@ -21,14 +21,53 @@ npx playwright install
 
 ## Running the Tests
 
+### Run All Tests
+```bash
+npm test
+# or
+npx playwright test
+```
+
+### Run Specific Folder
+
+You can run all tests in a specific folder by providing the folder path:
+
+**Run all tests in the login folder:**
+```bash
+npx playwright test tests/login
+# or
+npx playwright test tests/login/ --headed
+```
+
+**Run all tests in the Job_Posting/Applicants folder:**
+```bash
+npx playwright test tests/Job_Posting/Applicants
+# or
+npx playwright test tests/Job_Posting/Applicants/ --headed
+```
+
+**Using glob patterns:**
+```bash
+# Run all tests in Job_Posting folder (including subfolders)
+npx playwright test tests/Job_Posting/**/*.spec.ts
+
+# Run all tests in a specific folder
+npx playwright test tests/login/**/*.spec.ts
+```
+
+### Run Specific Test File
+
+Run a single test file:
+```bash
+npx playwright test tests/login/login.spec.ts --headed
+npx playwright test tests/Job_Posting/Applicants/applicants.spec.ts --headed
+```
+
+### Run with npm scripts
+
 Run the login automation script:
 ```bash
 npm run login
-```
-
-Or run with Playwright directly:
-```bash
-npx playwright test tests/login.spec.ts --headed
 ```
 
 ## Test Details

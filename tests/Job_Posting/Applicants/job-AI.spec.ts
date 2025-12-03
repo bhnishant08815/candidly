@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures/test-fixtures';
+import { test, expect } from '../../fixtures/test-fixtures';
 
 test.describe('AI-Powered Job Posting', () => {
   test('should create a new AI-powered job posting and save as draft', async ({ authenticatedPage, dashboardPage, jobPostingPage }) => {

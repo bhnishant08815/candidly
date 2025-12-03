@@ -1,10 +1,9 @@
-import { test, expect } from './fixtures/test-fixtures';
-import { LoginPage } from '../pages/login-page';
-import { DashboardPage } from '../pages/dashboard-page';
+import { test, expect } from '../fixtures/test-fixtures';
+
 import { testConfig } from '../config/test-config';
 
 test.describe('Login Automation', () => {
-  test('should login successfully with valid credentials', async ({ page, loginPage, dashboardPage }) => {
+  test('TC-001: should login successfully with valid credentials', { tag: ['@Positive'] }, async ({ page, loginPage, dashboardPage }) => {
     // Navigate to login page (this clicks the login button, so we're now on email input page)
     await loginPage.navigateToLogin();
     
@@ -35,7 +34,7 @@ test.describe('Login Automation', () => {
     console.log('Login completed successfully. Current URL:', currentURL);
   });
 
-  test('should display error message for invalid email', async ({ page, loginPage }) => {
+  test('TC-002: should display error message for invalid email', { tag: ['@Negative'] }, async ({ page, loginPage }) => {
     await loginPage.navigateToLogin();
     
     // Enter invalid email
@@ -55,7 +54,7 @@ test.describe('Login Automation', () => {
     await expect(page.locator("//input[@placeholder='johndoe@business.com']")).toBeVisible();
   });
 
-  test('should display error message for invalid password', async ({ page, loginPage }) => {
+  test('TC-003: should display error message for invalid password', { tag: ['@Negative'] }, async ({ page, loginPage }) => {
     await loginPage.navigateToLogin();
     
     // Enter valid email
@@ -84,7 +83,7 @@ test.describe('Login Automation', () => {
     expect(isLoginElementVisible).toBe(true);
   });
 
-  test('should validate required fields', async ({ page, loginPage }) => {
+  test('TC-004: should validate required fields', { tag: ['@Validation'] }, async ({ page, loginPage }) => {
     await loginPage.navigateToLogin();
     
     // Get email input and continue button
@@ -116,7 +115,7 @@ test.describe('Login Automation', () => {
     }
   });
 
-  test('should navigate to login page correctly', async ({ page, loginPage }) => {
+  test('TC-005: should navigate to login page correctly', { tag: ['@Navigation'] }, async ({ page, loginPage }) => {
     await loginPage.navigateToLogin();
     
     // Verify we're on the login page
@@ -129,7 +128,7 @@ test.describe('Login Automation', () => {
     console.log('Successfully navigated to login page');
   });
 
-  test('should complete full login flow and verify dashboard access', async ({ page, loginPage, dashboardPage }) => {
+  test('TC-006: should complete full login flow and verify dashboard access', { tag: ['@E2E'] }, async ({ page, loginPage, dashboardPage }) => {
     // Complete login
     await loginPage.login(testConfig.credentials.email, testConfig.credentials.password);
     
@@ -155,7 +154,7 @@ test.describe('Login Automation', () => {
     await dashboardPage.logout();
   });
 
-  test('should logout successfully', async ({ page, loginPage, dashboardPage }) => {
+  test('TC-007: should logout successfully', { tag: ['@Functional'] }, async ({ page, loginPage, dashboardPage }) => {
     // Login first
     await loginPage.login(testConfig.credentials.email, testConfig.credentials.password);
     await dashboardPage.closeNotifications();

@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures/test-fixtures';
+import { test, expect } from '../../fixtures/test-fixtures';
 
 test.describe('Applicants Automation', () => {
   test('should add a new applicant', async ({ authenticatedPage, dashboardPage, applicantsPage }) => {

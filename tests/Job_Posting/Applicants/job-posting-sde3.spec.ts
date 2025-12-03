@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures/test-fixtures';
+import { test, expect } from '../../fixtures/test-fixtures';
 
 test.describe('Job Posting SDE3 with Document Upload', () => {
   test('should create a new SDE3 job posting with document upload and save as draft', async ({ authenticatedPage, dashboardPage, jobPostingPage }) => {

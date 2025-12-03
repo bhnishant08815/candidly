@@ -6,6 +6,8 @@
   "scripts": {
     "test": "playwright test",
     "test:headed": "playwright test --headed",
+    "test:login": "playwright test tests/login --headed",
+    "test:job-posting": "playwright test tests/Job_Posting/Applicants --headed",
     "login": "npx playwright test login.spec.ts --headed",
     "job-posting": "npx playwright test job-posting.spec.ts --headed",
     "job-AI": "npx playwright test job-AI.spec.ts --headed",
