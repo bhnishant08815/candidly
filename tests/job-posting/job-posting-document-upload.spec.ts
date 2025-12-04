@@ -1,15 +1,19 @@
-import { test, expect } from '../../fixtures/test-fixtures';
+import { test, expect } from '../fixtures/test-fixtures';
+import { TestDataGenerator } from '../../utils/test-data-generator';
 
 test.describe('Job Posting SDE3 with Document Upload', () => {
   test('should create a new SDE3 job posting with document upload and save as draft', async ({ authenticatedPage, dashboardPage, jobPostingPage }) => {
+    // Generate dynamic job title to avoid duplicates
+    const jobTitle = TestDataGenerator.generateJobTitle('SDE3');
+
     // Navigate to Postings page
     await dashboardPage.navigateToPostings();
 
     // Start creating a new job posting
     await jobPostingPage.clickAddNewJob();
 
-    // Fill in basic job details
-    await jobPostingPage.fillJobTitle('SDE3');
+    // Fill in basic job details with dynamic title
+    await jobPostingPage.fillJobTitle(jobTitle);
     await jobPostingPage.selectDepartment('Engineering');
     await jobPostingPage.selectExperienceLevel('Lead (7-10 years)');
     await jobPostingPage.selectEmploymentType('Full-Time');
@@ -18,7 +22,7 @@ test.describe('Job Posting SDE3 with Document Upload', () => {
     // Continue to next step
     await jobPostingPage.clickContinue();
 
-    // Click on Document Upload Extract button
+    // Click on Document Upload button
     await jobPostingPage.clickDocumentUploadExtract();
 
     // Upload the document file
@@ -31,7 +35,6 @@ test.describe('Job Posting SDE3 with Document Upload', () => {
     await jobPostingPage.saveAsDraft();
 
     // Verify the job posting was created successfully
-    console.log('SDE3 job posting with document upload created and saved as draft. Current URL:', authenticatedPage.url());
+    console.log(`SDE3 job posting "${jobTitle}" with document upload created and saved as draft. Current URL:`, authenticatedPage.url());
   });
 });
-

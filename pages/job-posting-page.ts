@@ -18,8 +18,8 @@ export class JobPostingPage extends BasePage {
   private readonly continueButton = () => this.page.getByRole('button', { name: 'Continue' });
   private readonly reviewButton = () => this.page.getByRole('button', { name: 'Review' });
   private readonly saveAsDraftButton = () => this.page.getByRole('button', { name: 'Save as Draft' });
-  private readonly aiPoweredButton = () => this.page.getByRole('button', { name: /AI-Powered.*Let AI create a/i });
-  private readonly documentUploadExtractButton = () => this.page.getByRole('button', { name: 'Document Upload Extract' });
+  private readonly aiPoweredButton = () => this.page.getByRole('button', { name: /AI-Powered/i });
+  private readonly documentUploadExtractButton = () => this.page.getByRole('button', { name: /Document Upload/i });
 
   // Complex locators
   private readonly addResponsibilityButton = () => this.page.locator("//body/div[@role='dialog']/div/div/div/div/div/div/button[1]");
@@ -250,6 +250,41 @@ export class JobPostingPage extends BasePage {
   async selectLocations(locations: string[]): Promise<void> {
     for (const location of locations) {
       await this.selectLocation(location);
+    }
+  }
+
+  /**
+   * Add a new custom location
+   * Clicks the add location button, types the location name, and confirms
+   * @param locationName Name of the new location to add
+   */
+  async addCustomLocation(locationName: string): Promise<void> {
+    // Click on the add location button (SVG icon)
+    const addLocationIcon = this.page.locator("//div[@class='rounded-full border px-2.5 py-0.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-foreground cursor-pointer hover:scale-105 transition-transform flex items-center gap-1 flex-shrink-0']//*[name()='svg']");
+    await expect(addLocationIcon).toBeVisible();
+    await addLocationIcon.click();
+    await this.wait(500);
+
+    // Fill in the location name
+    const locationInput = this.page.getByRole('textbox', { name: 'Location name' });
+    await expect(locationInput).toBeVisible();
+    await locationInput.fill(locationName);
+    await this.wait(300);
+
+    // Click Add Location button
+    const addLocationButton = this.page.getByRole('button', { name: 'Add Location' });
+    await expect(addLocationButton).toBeVisible();
+    await addLocationButton.click();
+    await this.wait(500);
+  }
+
+  /**
+   * Add multiple custom locations
+   * @param locationNames Array of location names to add
+   */
+  async addCustomLocations(locationNames: string[]): Promise<void> {
+    for (const locationName of locationNames) {
+      await this.addCustomLocation(locationName);
     }
   }
 
