@@ -3,6 +3,7 @@ import { LoginPage } from '../../pages/login-page';
 import { DashboardPage } from '../../pages/dashboard-page';
 import { JobPostingPage } from '../../pages/job-posting-page';
 import { ApplicantsPage } from '../../pages/applicants-page';
+import { InterviewPage } from '../../pages/interview-page';
 import { testConfig } from '../../config/test-config';
 
 /**
@@ -13,6 +14,7 @@ type TestFixtures = {
   dashboardPage: DashboardPage;
   jobPostingPage: JobPostingPage;
   applicantsPage: ApplicantsPage;
+  interviewPage: InterviewPage;
   authenticatedPage: Page;
 };
 
@@ -51,6 +53,10 @@ export const test = base.extend<TestFixtures>({
 
   applicantsPage: async ({ page }: { page: Page }, use: (value: ApplicantsPage) => Promise<void>) => {
     await use(new ApplicantsPage(page));
+  },
+
+  interviewPage: async ({ page }: { page: Page }, use: (value: InterviewPage) => Promise<void>) => {
+    await use(new InterviewPage(page));
   },
 });
 

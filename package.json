@@ -9,11 +9,13 @@
     "test:login": "playwright test tests/login --headed",
     "test:job-posting": "playwright test tests/job-posting --headed",
     "test:applicants": "playwright test tests/Applicants --headed",
+    "test:interview": "playwright test tests/Interview --headed",
     "test:all": "playwright test --headed",
     "job-posting": "playwright test tests/job-posting/job-posting.spec.ts --headed",
     "job-posting:ai": "playwright test tests/job-posting/job-posting-ai.spec.ts --headed",
     "job-posting:document": "playwright test tests/job-posting/job-posting-document-upload.spec.ts --headed",
     "applicants": "playwright test tests/Applicants/applicants.spec.ts --headed",
+    "interview": "playwright test tests/Interview/Interview.spec.ts --headed",
     "login": "playwright test tests/login/login.spec.ts --headed",
     "report": "playwright show-report"
   },
