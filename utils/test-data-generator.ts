@@ -180,6 +180,14 @@ export class TestDataGenerator {
   }
 
   /**
+   * Returns a valid existing location for job postings
+   * Uses existing locations in the system to avoid creating duplicates
+   */
+  static generateCustomLocation(): string {
+    return this.getRandomLocation();
+  }
+
+  /**
    * Returns a random qualification
    */
   static getRandomQualification(): string {
@@ -196,18 +204,53 @@ export class TestDataGenerator {
   }
 
   /**
-   * Generates random notice period (in days)
+   * Generates random notice period months
    */
-  static generateNoticePeriod(): string {
-    const periods = ['0', '7', '15', '30', '45', '60', '90'];
-    return periods[Math.floor(Math.random() * periods.length)];
+  static generateNoticePeriodMonths(): string {
+    const months = ['0', '1', '2', '3'];
+    return months[Math.floor(Math.random() * months.length)];
   }
 
   /**
-   * Generates random CTC value
+   * Generates random notice period days
    */
-  static generateCTC(min: number = 5, max: number = 100): string {
-    return String(Math.floor(Math.random() * (max - min + 1)) + min);
+  static generateNoticePeriodDays(): string {
+    const days = ['0', '7', '15', '30'];
+    return days[Math.floor(Math.random() * days.length)];
+  }
+
+  /**
+   * Generates random experience months (0-11)
+   */
+  static generateExperienceMonths(): string {
+    return String(Math.floor(Math.random() * 12));
+  }
+
+  /**
+   * Generates random salary value (annual, full amount like 1000000)
+   */
+  static generateSalary(minLakhs: number = 5, maxLakhs: number = 50): string {
+    const lakhs = Math.floor(Math.random() * (maxLakhs - minLakhs + 1)) + minLakhs;
+    return String(lakhs * 100000); // Convert to full amount
+  }
+
+  /**
+   * Generates random education details
+   */
+  static generateEducation(): string {
+    const degrees = ['B.Tech in Computer Science', 'M.Tech in Software Engineering', 'BCA', 'MCA', 
+                     'BSc Computer Science', 'MSc Computer Science', 'B.E. in IT', 'MBA in Technology'];
+    const colleges = ['IIT Delhi', 'BITS Pilani', 'NIT Trichy', 'VIT Vellore', 'IIIT Hyderabad'];
+    return `${degrees[Math.floor(Math.random() * degrees.length)]}, ${colleges[Math.floor(Math.random() * colleges.length)]}`;
+  }
+
+  /**
+   * Generates random work experience summary
+   */
+  static generateWorkExperience(): string {
+    const roles = ['Software Engineer', 'Senior Developer', 'Tech Lead', 'Full Stack Developer', 'Backend Developer'];
+    const companies = ['TCS', 'Infosys', 'Wipro', 'Tech Mahindra', 'HCL', 'Cognizant', 'Accenture'];
+    return `${roles[Math.floor(Math.random() * roles.length)]} at ${companies[Math.floor(Math.random() * companies.length)]}`;
   }
 
   /**
@@ -232,7 +275,7 @@ export class TestDataGenerator {
       qualification: this.getRandomQualification(),
       skills: this.getRandomSkills(),
       compensation: this.generateCompensation(),
-      location: this.getRandomLocation(),
+      location: this.generateCustomLocation(),
       ...overrides
     };
   }
@@ -243,17 +286,44 @@ export class TestDataGenerator {
    */
   static generateApplicantData(overrides: Partial<ApplicantData> & { role: string }): ApplicantData {
     const { role, ...restOverrides } = overrides;
-    return {
+    // Always generate all fields - never leave any field empty
+    const defaultData: ApplicantData = {
       resumePath: 'test-resources/functionalsample.pdf',
       phone: this.generatePhoneNumber(),
       role: role, // Must be an existing job posting
-      experience: this.generateExperience(),
-      noticePeriod: this.generateNoticePeriod(),
-      currentCTC: this.generateCTC(5, 50),
-      expectedCTC: this.generateCTC(10, 80),
+      experienceYears: this.generateExperience(1, 10),
+      experienceMonths: this.generateExperienceMonths(),
+      noticePeriodMonths: this.generateNoticePeriodMonths(),
+      noticePeriodDays: this.generateNoticePeriodDays(),
+      currentSalary: this.generateSalary(5, 30),
+      expectedSalary: this.generateSalary(10, 50),
+      education: this.generateEducation(),
+      workExperience: this.generateWorkExperience(),
       skills: this.generateSkillsString(),
-      ...restOverrides
+      currency: 'INR' // Default currency
     };
+    
+    // Merge with overrides, but ensure no field is left empty
+    const merged = { ...defaultData, ...restOverrides };
+    
+    // Ensure optional fields always have values
+    if (!merged.education || merged.education.trim() === '') {
+      merged.education = this.generateEducation();
+    }
+    if (!merged.workExperience || merged.workExperience.trim() === '') {
+      merged.workExperience = this.generateWorkExperience();
+    }
+    if (!merged.skills || merged.skills.trim() === '') {
+      merged.skills = this.generateSkillsString();
+    }
+    if (!merged.experienceMonths || merged.experienceMonths.trim() === '') {
+      merged.experienceMonths = this.generateExperienceMonths();
+    }
+    if (!merged.noticePeriodDays || merged.noticePeriodDays.trim() === '') {
+      merged.noticePeriodDays = this.generateNoticePeriodDays();
+    }
+    
+    return merged;
   }
 }
 
@@ -276,9 +346,14 @@ export interface ApplicantData {
   resumePath: string;
   phone: string;
   role: string;
-  experience: string;
-  noticePeriod: string;
-  currentCTC: string;
-  expectedCTC: string;
-  skills: string;
+  experienceYears: string;
+  experienceMonths?: string;
+  noticePeriodMonths: string;
+  noticePeriodDays?: string;
+  currentSalary: string;
+  expectedSalary: string;
+  education?: string;
+  workExperience?: string;
+  skills?: string;
+  currency?: string;
 }

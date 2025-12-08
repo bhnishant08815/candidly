@@ -17,8 +17,7 @@ test.describe('Interview Automation', () => {
     // Uses the first available applicant from the dropdown
     const interviewData: InterviewData = {
       applicantName: 'SELECT_FIRST_AVAILABLE', 
-      mainInterviewer: 'Divy Muni',
-      additionalInterviewers: ['Nishant Bhardwaj'],
+      mainInterviewer: 'Nishant Bhardwaj',
       date: '2025-12-20',
       time: '10:00 AM',
       round: 'Tech-I'

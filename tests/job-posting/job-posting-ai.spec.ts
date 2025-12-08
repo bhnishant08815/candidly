@@ -3,8 +3,9 @@ import { TestDataGenerator } from '../../utils/test-data-generator';
 
 test.describe('AI-Powered Job Posting', () => {
   test('should create a new AI-powered job posting and save as draft', async ({ authenticatedPage, dashboardPage, jobPostingPage }) => {
-    // Generate dynamic job title to avoid duplicates
+    // Generate dynamic job title and location to avoid duplicates
     const jobTitle = TestDataGenerator.generateJobTitle('AI Engineer');
+    const customLocation = TestDataGenerator.generateCustomLocation();
 
     // Navigate to Postings page
     await dashboardPage.navigateToPostings();
@@ -25,13 +26,13 @@ test.describe('AI-Powered Job Posting', () => {
     // Use AI-Powered feature to create job posting
     await jobPostingPage.clickAIPoweredButton();
 
-    // Select locations
-    await jobPostingPage.selectLocations(['Gurgaon', 'Remote']);
+    // Add custom location (using the new flow)
+    await jobPostingPage.addCustomLocation(customLocation);
 
     // Save the job posting as draft
     await jobPostingPage.saveAsDraft();
 
     // Verify the job posting was created successfully
-    console.log(`AI-powered job posting "${jobTitle}" created and saved as draft. Current URL:`, authenticatedPage.url());
+    console.log(`AI-powered job posting "${jobTitle}" with location "${customLocation}" created and saved as draft. Current URL:`, authenticatedPage.url());
   });
 });
