@@ -371,10 +371,12 @@ test.describe('Job Posting Regression Tests', () => {
       await jobPostingPage.addSkill('JavaScript');
       await jobPostingPage.addCustomLocation('Remote');
       
-      // Don't fill compensation - try to save
-      await jobPostingPage.saveAsDraft();
+      // Don't fill compensation - verify Review button is disabled (validation prevents progression)
+      const reviewButton = page.getByRole('button', { name: 'Review' });
+      await expect(reviewButton).toBeVisible();
+      await expect(reviewButton).toBeDisabled();
 
-      // Verify validation message appears
+      // Verify validation message appears (if shown)
       const validationMessage = page.getByText('Please enter compensation and benefits');
       const isValidationVisible = await validationMessage.isVisible().catch(() => false);
 

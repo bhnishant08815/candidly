@@ -172,7 +172,7 @@ export class JobPostingPage extends BasePage {
       } else {
         // Button not found - might not be required for this flow
         // Try waiting a bit more in case it's still loading
-        await this.wait(500);
+        await this.page.waitForTimeout(500);
         const isVisibleAfterWait = await button.isVisible().catch(() => false);
         if (isVisibleAfterWait) {
           await expect(button).toBeEnabled();
