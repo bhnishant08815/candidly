@@ -20,6 +20,7 @@ export class JobPostingPage extends BasePage {
   private readonly saveAsDraftButton = () => this.page.getByText(/Save as Draft/i);
   private readonly aiPoweredButton = () => this.page.getByRole('button', { name: /AI-Powered/i });
   private readonly documentUploadExtractButton = () => this.page.getByRole('button', { name: /Document Upload/i });
+  private readonly manualEntryButton = () => this.page.getByRole('button', { name: /Manual Entry/i });
 
   // Complex locators
   private readonly addResponsibilityButton = () => this.page.locator("//body/div[@role='dialog']/div/div/div/div/div/div/button[1]");
@@ -379,6 +380,15 @@ export class JobPostingPage extends BasePage {
   }
 
   /**
+   * Click on Manual Entry button to proceed with manual job posting creation
+   */
+  async clickManualEntryButton(): Promise<void> {
+    await expect(this.manualEntryButton()).toBeVisible({ timeout: 10000 });
+    await this.manualEntryButton().click();
+    await this.wait(1000);
+  }
+
+  /**
    * Click on AI-Powered button to let AI create the job posting
    */
   async clickAIPoweredButton(): Promise<void> {
@@ -421,10 +431,15 @@ export class JobPostingPage extends BasePage {
     // No validation error - wait for either success notification OR dialog to close
     const successNotification = this.page.getByText('Job posting created successfully!');
     
-    try {
-      await expect(successNotification).toBeVisible({ timeout: 5000 });
-    } catch {
+    // Wait for success notification with longer timeout (notification may take time to appear)
+    const notificationVisible = await successNotification.isVisible({ timeout: 15000 }).catch(() => false);
+    
+    if (notificationVisible) {
+      // Notification appeared - success, dialog should close shortly
+      await expect(dialog).not.toBeVisible({ timeout: 10000 });
+    } else {
       // If notification doesn't appear, wait for dialog to close instead
+      // This handles cases where notification doesn't show but save succeeds
       await expect(dialog).not.toBeVisible({ timeout: 30000 });
     }
   }
@@ -467,6 +482,12 @@ export class JobPostingPage extends BasePage {
     location: string;
   }): Promise<void> {
     await this.clickAddNewJob();
+    // Select Manual Entry method if method selection screen is shown
+    const manualEntryButton = this.manualEntryButton();
+    const isMethodSelectionVisible = await manualEntryButton.isVisible({ timeout: 3000 }).catch(() => false);
+    if (isMethodSelectionVisible) {
+      await this.clickManualEntryButton();
+    }
     await this.fillJobTitle(jobData.title);
     await this.selectDepartment(jobData.department);
     await this.selectExperienceLevel(jobData.experienceLevel);
