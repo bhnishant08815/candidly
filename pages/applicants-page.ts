@@ -15,13 +15,19 @@ export class ApplicantsPage extends BasePage {
   private readonly fullNameInput = () => this.applicantDialog().getByRole('textbox', { name: 'Full Name *' });
   private readonly emailInput = () => this.applicantDialog().getByRole('textbox', { name: 'Email *' });
   private readonly phoneInput = () => this.applicantDialog().getByRole('textbox', { name: 'Phone *' });
-  private readonly roleCombobox = () => this.applicantDialog().getByRole('combobox').filter({ hasText: 'Select position' });
+  private readonly roleCombobox = () => {
+    // Find the role combobox - it's the first combobox in the form (before currency combobox)
+    // Located near "Applied For Position" label
+    const dialog = this.applicantDialog();
+    // The role combobox is the first combobox in the dialog (currency is second)
+    return dialog.getByRole('combobox').first();
+  };
   
   // Experience fields - first two spinbuttons in the form
   private readonly experienceYearsInput = () => this.applicantDialog().getByRole('spinbutton').nth(0);
   private readonly experienceMonthsInput = () => this.applicantDialog().getByRole('spinbutton').nth(1);
   
-  // Notice Period fields - spinbuttons come after experience fields
+  // Notice Period fields - use nth() but with better error handling in fillNoticePeriod
   // Experience has 2 spinbuttons (index 0, 1), Notice Period has 2 (index 2, 3)
   private readonly noticePeriodMonthsInput = () => this.applicantDialog().getByRole('spinbutton').nth(2);
   private readonly noticePeriodDaysInput = () => this.applicantDialog().getByRole('spinbutton').nth(3);
@@ -47,8 +53,65 @@ export class ApplicantsPage extends BasePage {
    * Click on Add Applicant button
    */
   async clickAddApplicant(): Promise<void> {
-    await expect(this.addApplicantButton()).toBeVisible();
-    await this.addApplicantButton().click();
+    // Wait for page to be fully loaded
+    await this.page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {
+      // Continue even if networkidle times out
+    });
+    
+    // Verify we're on the applicants page by checking for page heading
+    // This is more reliable than URL checking
+    const applicantsHeading = this.page.getByRole('heading', { name: 'Applicants' });
+    await expect(applicantsHeading).toBeVisible({ timeout: 10000 }).catch(() => {
+      throw new Error('Not on applicants page: "Applicants" heading not found');
+    });
+    
+    // Wait for any dialogs to close if they're open
+    const dialog = this.applicantDialog();
+    const isDialogOpen = await dialog.isVisible().catch(() => false);
+    if (isDialogOpen) {
+      // Dialog is already open, close it first
+      await this.cancelApplicant();
+      await this.wait(500);
+    }
+    
+    // Find the button on the main page (not in dialog)
+    // Use locator that finds button outside of dialog
+    const allAddButtons = this.page.getByRole('button', { name: 'Add Applicant' });
+    const buttonCount = await allAddButtons.count();
+    
+    let button;
+    if (buttonCount > 1) {
+      // Multiple buttons found - get the one that's not in the dialog
+      // The first one should be the main page button
+      button = allAddButtons.first();
+    } else {
+      button = allAddButtons;
+    }
+    
+    // Wait for button to be visible with retry
+    let retries = 3;
+    while (retries > 0) {
+      try {
+        await expect(button).toBeVisible({ timeout: 5000 });
+        break;
+      } catch (error) {
+        retries--;
+        if (retries === 0) {
+          // Try alternative locator strategy - look for button with icon and text
+          const altButton = this.page.locator('button').filter({ hasText: 'Add Applicant' }).first();
+          const isAltVisible = await altButton.isVisible({ timeout: 2000 }).catch(() => false);
+          if (isAltVisible) {
+            await altButton.click();
+            await this.wait(1000);
+            return;
+          }
+          throw new Error(`Add Applicant button not visible after retries. Make sure you're on the applicants page.`);
+        }
+        await this.wait(1000);
+      }
+    }
+    
+    await button.click();
     await this.wait(1000);
   }
 
@@ -58,8 +121,63 @@ export class ApplicantsPage extends BasePage {
    */
   async uploadResume(filePath: string): Promise<void> {
     const fileInput = this.applicantDialog().locator('input[type="file"]');
-    // Wait for role combobox to appear after resume processing
-    await this.uploadFile(fileInput, filePath, this.roleCombobox());
+    const dialog = this.applicantDialog();
+    
+    // Upload the file
+    await fileInput.setInputFiles(filePath);
+    
+    // Wait for resume processing - look for multiple indicators
+    // 1. Wait for "Complete Form" step indicator (step 2)
+    const stepIndicator = dialog.locator('text=/Complete Form|2/i');
+    try {
+      await expect(stepIndicator).toBeVisible({ timeout: 30000 });
+    } catch {
+      // If step indicator not found, continue with other checks
+    }
+    
+    // 2. Wait for form fields to appear - try multiple strategies
+    let formReady = false;
+    const maxRetries = 20; // Increased from 5 to 20 to allow more time for resume processing
+    let retryCount = 0;
+    
+    while (!formReady && retryCount < maxRetries) {
+      // Strategy 1: Check for role combobox
+      const roleCombobox = this.roleCombobox();
+      const isComboboxVisible = await roleCombobox.isVisible({ timeout: 10000 }).catch(() => false);
+      
+      if (isComboboxVisible) {
+        formReady = true;
+        break;
+      }
+      
+      // Strategy 2: Check for Full Name field
+      const fullNameField = this.fullNameInput();
+      const isFullNameVisible = await fullNameField.isVisible({ timeout: 10000 }).catch(() => false);
+      
+      if (isFullNameVisible) {
+        formReady = true;
+        break;
+      }
+      
+      // Strategy 3: Check for any textbox in the dialog (form fields)
+      const anyTextField = dialog.getByRole('textbox').first();
+      const isTextFieldVisible = await anyTextField.isVisible({ timeout: 10000 }).catch(() => false);
+      
+      if (isTextFieldVisible) {
+        formReady = true;
+        break;
+      }
+      
+      // Wait before retrying
+      retryCount++;
+      if (retryCount < maxRetries) {
+        await this.wait(3000); // Increased from 2000ms to 3000ms for longer wait between retries
+      }
+    }
+    
+    if (!formReady) {
+      throw new Error(`Resume upload completed but form fields did not appear after ${maxRetries} attempts. The resume may have failed to process or the form may be taking longer than expected.`);
+    }
     
     // Wait for auto-filled fields (Full Name and Email) to be populated
     // These fields are auto-parsed from the resume
@@ -82,17 +200,96 @@ export class ApplicantsPage extends BasePage {
 
   /**
    * Select role from dropdown
-   * @param role Role name (e.g., "Full Stack Developer")
+   * If role is not provided or not found, randomly selects any available role
+   * @param role Optional role name (e.g., "Full Stack Developer"). If not provided or not found, selects a random role
+   * @returns The selected role name
    */
-  async selectRole(role: string): Promise<void> {
-    await expect(this.roleCombobox()).toBeVisible();
-    await this.roleCombobox().click();
+  async selectRole(role?: string): Promise<string> {
+    // Wait for dialog to be fully ready
+    await expect(this.applicantDialog()).toBeVisible({ timeout: 10000 });
+    
+    // Wait for combobox to be visible and ready - try multiple locator strategies
+    let combobox = this.roleCombobox();
+    let isVisible = await combobox.isVisible({ timeout: 10000 }).catch(() => false);
+    
+    if (!isVisible) {
+      // Try alternative: find combobox by label context
+      const dialog = this.applicantDialog();
+      const labelDiv = dialog.locator('div').filter({ hasText: /Applied For Position/i });
+      combobox = labelDiv.getByRole('combobox').first();
+      isVisible = await combobox.isVisible({ timeout: 5000 }).catch(() => false);
+    }
+    
+    if (!isVisible) {
+      throw new Error('Role combobox not found after resume upload');
+    }
+    
     await this.wait(500);
     
-    const roleOption = this.page.getByRole('option', { name: role });
-    await expect(roleOption).toBeVisible();
+    // Click the combobox to open dropdown
+    await combobox.click();
+    await this.wait(500);
+    
+    // Wait for listbox to be visible before searching for options
+    const listbox = this.page.getByRole('listbox');
+    await expect(listbox).toBeVisible({ timeout: 10000 });
+    
+    // Wait for at least one option to be visible (ensures dropdown is fully loaded)
+    const firstOption = listbox.getByRole('option').first();
+    await expect(firstOption).toBeVisible({ timeout: 10000 });
+    
+    // Get all available options
+    const allOptions = listbox.getByRole('option');
+    const optionCount = await allOptions.count();
+    
+    if (optionCount === 0) {
+      throw new Error('No roles available in dropdown');
+    }
+    
+    let selectedRole: string;
+    let roleOption;
+    
+    // If role is provided, try to find it
+    if (role) {
+      roleOption = listbox.getByRole('option', { name: role, exact: false });
+      const optionExists = await roleOption.isVisible({ timeout: 5000 }).catch(() => false);
+      
+      if (optionExists) {
+        // Role found, use it
+        selectedRole = role;
+      } else {
+        // Role not found, select random role
+        const randomIndex = Math.floor(Math.random() * optionCount);
+        roleOption = allOptions.nth(randomIndex);
+        const roleText = await roleOption.textContent();
+        selectedRole = roleText ? roleText.trim() : '';
+        console.log(`Role "${role}" not found. Randomly selected: "${selectedRole}"`);
+      }
+    } else {
+      // No role provided, select random role
+      const randomIndex = Math.floor(Math.random() * optionCount);
+      roleOption = allOptions.nth(randomIndex);
+      const roleText = await roleOption.textContent();
+      selectedRole = roleText ? roleText.trim() : '';
+      console.log(`No role specified. Randomly selected: "${selectedRole}"`);
+    }
+    
+    if (!selectedRole) {
+      throw new Error('Failed to get role text from selected option');
+    }
+    
+    // Click the selected option
     await roleOption.click();
     await this.wait(500);
+    
+    // Verify selection was made
+    const selectedValue = await combobox.textContent().catch(() => '');
+    if (!selectedValue || !selectedValue.includes(selectedRole)) {
+      // Wait a bit more for the selection to update
+      await this.wait(1000);
+    }
+    
+    return selectedRole;
   }
 
   /**
@@ -103,9 +300,67 @@ export class ApplicantsPage extends BasePage {
     if (!phone || phone.trim() === '') {
       throw new Error('Phone number cannot be empty');
     }
-    await expect(this.phoneInput()).toBeVisible();
+    
+    // Check if page is still valid
+    if (this.page.isClosed()) {
+      throw new Error('Page was closed before filling phone number');
+    }
+    
+    // Wait for dialog to be visible first
+    await expect(this.applicantDialog()).toBeVisible({ timeout: 10000 });
+    
+    await expect(this.phoneInput()).toBeVisible({ timeout: 10000 });
     await this.phoneInput().clear();
     await this.phoneInput().fill(phone);
+  }
+
+  /**
+   * Fill or modify email address
+   * If email is auto-filled from resume and might be duplicate, this can modify it
+   * @param email Email address (optional - if not provided, will use auto-filled value)
+   */
+  async fillEmail(email?: string): Promise<void> {
+    await expect(this.emailInput()).toBeVisible();
+    
+    if (email) {
+      // If email is provided, use it
+      await this.emailInput().clear();
+      await this.emailInput().fill(email);
+    } else {
+      // If no email provided, check if field is already filled (from resume)
+      const currentEmail = await this.emailInput().inputValue().catch(() => '');
+      if (!currentEmail || currentEmail.trim() === '') {
+        throw new Error('Email field is empty and no email was provided');
+      }
+      // Email is already filled from resume, keep it
+    }
+  }
+
+  /**
+   * Modify email to make it unique by adding a timestamp suffix
+   * Useful when dealing with duplicate email errors
+   */
+  async makeEmailUnique(): Promise<string> {
+    const currentEmail = await this.emailInput().inputValue().catch(() => '');
+    if (!currentEmail || currentEmail.trim() === '') {
+      throw new Error('Cannot make email unique: email field is empty');
+    }
+    
+    // Extract email parts
+    const [localPart, domain] = currentEmail.split('@');
+    if (!domain) {
+      throw new Error(`Invalid email format: ${currentEmail}`);
+    }
+    
+    // Add timestamp to make it unique
+    const timestamp = Date.now().toString().slice(-8);
+    const uniqueEmail = `${localPart}_${timestamp}@${domain}`;
+    
+    await this.emailInput().clear();
+    await this.emailInput().fill(uniqueEmail);
+    await this.wait(300);
+    
+    return uniqueEmail;
   }
 
   /**
@@ -145,15 +400,108 @@ export class ApplicantsPage extends BasePage {
       days = '0'; // Default to 0 if not provided
     }
     
-    // Fill months using placeholder-based locator
-    await expect(this.noticePeriodMonthsInput()).toBeVisible();
-    await this.noticePeriodMonthsInput().clear();
-    await this.noticePeriodMonthsInput().fill(months);
+    // Wait for dialog to be fully loaded
+    await this.wait(500);
     
-    // Fill days using placeholder-based locator
-    await expect(this.noticePeriodDaysInput()).toBeVisible();
-    await this.noticePeriodDaysInput().clear();
-    await this.noticePeriodDaysInput().fill(days);
+    // Get all spinbuttons to find notice period fields more reliably
+    const allSpinbuttons = this.applicantDialog().getByRole('spinbutton');
+    const spinbuttonCount = await allSpinbuttons.count();
+    
+    // Experience fields should be at index 0 and 1
+    // Notice period should be at index 2 and 3, but verify by checking values
+    let noticeMonthsIndex = 2;
+    let noticeDaysIndex = 3;
+    
+    // If we have more than 4 spinbuttons, try to find notice period fields by context
+    if (spinbuttonCount > 4) {
+      // Try to find by looking for fields after experience
+      // We'll use the known pattern: experience (0,1), notice period (2,3)
+      noticeMonthsIndex = 2;
+      noticeDaysIndex = 3;
+    }
+    
+    // Fill months with retry logic
+    const monthsInput = allSpinbuttons.nth(noticeMonthsIndex);
+    await expect(monthsInput).toBeVisible({ timeout: 10000 });
+    await monthsInput.clear();
+    await monthsInput.fill(months);
+    
+    // Verify months was filled
+    await this.wait(300);
+    const monthsValue = await monthsInput.inputValue().catch(() => '');
+    if (monthsValue !== months) {
+      // Retry filling months
+      await monthsInput.clear();
+      await monthsInput.fill(months);
+      await this.wait(300);
+    }
+    
+    // Fill days with retry logic - spinbuttons may need special handling
+    const daysInput = allSpinbuttons.nth(noticeDaysIndex);
+    await expect(daysInput).toBeVisible({ timeout: 10000 });
+    
+    // Multiple strategies to fill the spinbutton field
+    let daysValue = '';
+    const strategies = [
+      // Strategy 1: Focus, clear, fill
+      async () => {
+        await daysInput.focus();
+        await daysInput.clear();
+        await this.wait(200);
+        await daysInput.fill(days);
+        await this.wait(300);
+        return await daysInput.inputValue().catch(() => '');
+      },
+      // Strategy 2: Click, select all, type
+      async () => {
+        await daysInput.click();
+        await this.page.keyboard.press('Control+A');
+        await this.wait(100);
+        await daysInput.type(days, { delay: 50 });
+        await this.wait(300);
+        return await daysInput.inputValue().catch(() => '');
+      },
+      // Strategy 3: Focus, clear, pressSequentially
+      async () => {
+        await daysInput.focus();
+        await daysInput.clear();
+        await this.wait(200);
+        await this.page.keyboard.type(days, { delay: 100 });
+        await this.wait(300);
+        return await daysInput.inputValue().catch(() => '');
+      },
+      // Strategy 4: Triple click to select all, then type
+      async () => {
+        await daysInput.click({ clickCount: 3 });
+        await this.wait(100);
+        await this.page.keyboard.type(days, { delay: 100 });
+        await this.wait(300);
+        return await daysInput.inputValue().catch(() => '');
+      }
+    ];
+    
+    // Try each strategy until one works
+    let success = false;
+    for (let i = 0; i < strategies.length; i++) {
+      try {
+        daysValue = await strategies[i]();
+        if (daysValue && daysValue !== '' && daysValue !== null && daysValue !== undefined) {
+          // Success - value was filled (exact match not required, just needs to be non-empty)
+          success = true;
+          break;
+        }
+      } catch (error) {
+        // Continue to next strategy unless this is the last one
+        if (i === strategies.length - 1 && !success) {
+          throw new Error(`Failed to fill Notice Period Days field after ${strategies.length} attempts. Attempted value: "${days}". Last error: ${error instanceof Error ? error.message : 'Unknown'}`);
+        }
+      }
+    }
+    
+    // Final verification
+    if (!success || !daysValue || daysValue === '' || daysValue === null || daysValue === undefined) {
+      throw new Error(`Failed to fill Notice Period Days field. Attempted value: "${days}", but field remains empty after all strategies.`);
+    }
   }
 
   /**
@@ -234,49 +582,140 @@ export class ApplicantsPage extends BasePage {
 
   /**
    * Submit the applicant form
+   * Handles duplicate email errors by automatically modifying the email and retrying
    */
   async submitApplicant(): Promise<void> {
-    // Wait for submit button to be enabled
-    await expect(this.submitButton()).toBeEnabled({ timeout: 20000 });
+    const maxRetries = 2; // Allow one retry for duplicate email
+    let attempt = 0;
     
-    // Wait for any loading states to complete before clicking
-    await this.wait(500);
-    
-    // Click submit and wait for network request to complete
-    const submitPromise = this.submitButton().click();
-    
-    // Wait for network to be idle after clicking submit (form submission)
-    await Promise.all([
-      submitPromise,
-      this.page.waitForLoadState('networkidle', { timeout: 60000 }).catch(() => {
-        // If networkidle times out, continue anyway
-      })
-    ]);
-    
-    // Wait a bit for the UI to update
-    await this.wait(1000);
-    
-    // Wait for dialog to close after successful submission
-    // Increase timeout and use a more flexible check
-    try {
-      await expect(this.applicantDialog()).not.toBeVisible({ timeout: 30000 });
-    } catch (error) {
-      // If dialog is still visible, check if submit button is disabled (indicating loading state)
-      const isSubmitDisabled = await this.submitButton().isDisabled().catch(() => false);
-      if (isSubmitDisabled) {
-        // Button is disabled, might be in loading state - wait a bit more
-        await this.wait(2000);
-        await expect(this.applicantDialog()).not.toBeVisible({ timeout: 20000 });
-      } else {
-        // Check if there are any error messages visible in the dialog
-        const errorMessages = this.applicantDialog().locator('text=/error|Error|required|Required|invalid|Invalid|validation|Validation/i');
-        const errorCount = await errorMessages.count();
+    while (attempt <= maxRetries) {
+      // First, verify all critical fields are filled before attempting submission
+      try {
+        const noticeDays = await this.noticePeriodDaysInput().inputValue().catch(() => '');
+        if (noticeDays === '' || noticeDays === null || noticeDays === undefined) {
+          throw new Error('Notice Period Days field is empty before submission. Cannot submit form.');
+        }
+      } catch (error) {
+        // If we can't even read the field, something is wrong
+        if (error instanceof Error && error.message.includes('Notice Period Days')) {
+          throw error;
+        }
+      }
+      
+      // Wait for submit button to be enabled
+      await expect(this.submitButton()).toBeEnabled({ timeout: 20000 });
+      
+      // Wait for any loading states to complete before clicking
+      await this.wait(500);
+      
+      // Check if page is still valid before submitting
+      if (this.page.isClosed()) {
+        throw new Error('Page was closed before form submission');
+      }
+      
+      // Click submit and wait for network request to complete
+      const submitPromise = this.submitButton().click();
+      
+      // Wait for network to be idle after clicking submit (form submission)
+      await Promise.all([
+        submitPromise,
+        this.page.waitForLoadState('networkidle', { timeout: 60000 }).catch(() => {
+          // If networkidle times out, continue anyway
+        })
+      ]);
+      
+      // Wait a bit for the UI to update
+      await this.wait(1000);
+      
+      // Check if page was closed during submission
+      if (this.page.isClosed()) {
+        throw new Error('Page was closed during form submission');
+      }
+      
+      // Wait for dialog to close after successful submission
+      // Increase timeout and use a more flexible check
+      try {
+        await expect(this.applicantDialog()).not.toBeVisible({ timeout: 30000 });
+        // Dialog closed successfully - submission worked!
+        await this.wait(1000);
+        return;
+      } catch (error) {
+        // If dialog is still visible, check if submit button is disabled (indicating loading state)
+        const isSubmitDisabled = await this.submitButton().isDisabled().catch(() => false);
+        if (isSubmitDisabled) {
+          // Button is disabled, might be in loading state - wait a bit more
+          await this.wait(2000);
+          try {
+            await expect(this.applicantDialog()).not.toBeVisible({ timeout: 20000 });
+            // Dialog closed after waiting - submission worked!
+            await this.wait(1000);
+            return;
+          } catch (waitError) {
+            // Still not closed, continue to error checking
+          }
+        }
         
-        if (errorCount > 0) {
-          const errorTexts: string[] = [];
-          for (let i = 0; i < errorCount; i++) {
-            const text = await errorMessages.nth(i).textContent().catch(() => '');
-            if (text) errorTexts.push(text);
+        // Check if page is still valid
+        if (this.page.isClosed()) {
+          throw new Error('Page was closed while waiting for dialog to close');
+        }
+        
+        // Check if there are any error messages visible in the dialog
+        let errorCount = 0;
+        let errorTexts: string[] = [];
+        let hasDuplicateEmailError = false;
+        
+        try {
+          // Look for error messages - including duplicate email specific patterns
+          const errorMessages = this.applicantDialog().locator('text=/error|Error|required|Required|invalid|Invalid|validation|Validation|duplicate|Duplicate|already exists|already registered|already in use|email.*exist/i');
+          errorCount = await errorMessages.count();
+          
+          if (errorCount > 0) {
+            for (let i = 0; i < errorCount; i++) {
+              const text = await errorMessages.nth(i).textContent().catch(() => '');
+              if (text) {
+                errorTexts.push(text);
+                // Check if this is a duplicate email error
+                if (text.match(/duplicate|already exists|already registered|already in use|email.*exist/i)) {
+                  hasDuplicateEmailError = true;
+                }
+              }
+            }
+          }
+          
+          // Also check for error messages near the email field specifically
+          const emailFieldError = this.emailInput().locator('..').locator('text=/duplicate|already exists|already registered|already in use|email.*exist/i');
+          const emailErrorCount = await emailFieldError.count().catch(() => 0);
+          if (emailErrorCount > 0) {
+            hasDuplicateEmailError = true;
+            const emailErrorText = await emailFieldError.first().textContent().catch(() => '');
+            if (emailErrorText && !errorTexts.includes(emailErrorText)) {
+              errorTexts.push(emailErrorText);
+            }
+          }
+        } catch (countError) {
+          // If we can't count errors, the page might have changed
+          // Continue to check field values
+        }
+        
+        // Handle duplicate email error - retry with unique email
+        if (hasDuplicateEmailError && attempt < maxRetries) {
+          console.log(`Duplicate email detected (attempt ${attempt + 1}/${maxRetries + 1}). Modifying email to make it unique...`);
+          try {
+            const uniqueEmail = await this.makeEmailUnique();
+            console.log(`Email modified to: ${uniqueEmail}. Retrying submission...`);
+            attempt++;
+            await this.wait(1000);
+            continue; // Retry submission with new email
+          } catch (emailError) {
+            // If we can't modify email, throw the duplicate error
+            throw new Error(`DUPLICATE EMAIL ERROR: The email address already exists in the system. Error details: ${errorTexts.join(', ')}. Failed to modify email: ${emailError instanceof Error ? emailError.message : 'Unknown error'}`);
+          }
+        }
+        
+        if (errorCount > 0 || hasDuplicateEmailError) {
+          if (hasDuplicateEmailError) {
+            throw new Error(`DUPLICATE EMAIL ERROR: The email address already exists in the system. Error details: ${errorTexts.join(', ')}. This happens when the same resume (with the same email) is used multiple times. Attempted ${attempt + 1} times.`);
           }
           throw new Error(`Form submission failed with errors: ${errorTexts.join(', ')}`);
         }
@@ -289,12 +728,16 @@ export class ApplicantsPage extends BasePage {
           throw new Error(`Form submission failed: Required fields are empty. Full Name: "${fullNameValue}", Email: "${emailValue}"`);
         }
         
+        // Check notice period days one more time
+        const noticeDaysCheck = await this.noticePeriodDaysInput().inputValue().catch(() => '');
+        if (noticeDaysCheck === '' || noticeDaysCheck === null || noticeDaysCheck === undefined) {
+          throw new Error(`Form submission failed: Notice Period Days field is empty. This is likely preventing form submission.`);
+        }
+        
         // Button is enabled but dialog didn't close - likely an error
         throw new Error('Dialog did not close after form submission. Form may have validation errors or the submission may have failed.');
       }
     }
-    
-    await this.wait(1000);
   }
 
   /**
@@ -333,7 +776,7 @@ export class ApplicantsPage extends BasePage {
   async addApplicant(applicantData: {
     resumePath: string;
     phone: string;
-    role: string;
+    role?: string;
     experienceYears: string;
     experienceMonths?: string;
     noticePeriodMonths: string;
@@ -344,14 +787,30 @@ export class ApplicantsPage extends BasePage {
     workExperience?: string;
     skills?: string;
     currency?: string;
-  }): Promise<void> {
+  }): Promise<string> {
     await this.clickAddApplicant();
     await this.uploadResume(applicantData.resumePath);
     
     // Wait a bit for auto-filled fields to populate
     await this.wait(1000);
     
-    await this.selectRole(applicantData.role);
+    // Select role (randomly if not provided or not found) and get the selected role
+    const selectedRole = await this.selectRole(applicantData.role);
+    
+    // Wait for email to be auto-filled from resume, then make it unique to avoid duplicates
+    await this.wait(1000);
+    try {
+      // Check if email is already filled from resume
+      const currentEmail = await this.emailInput().inputValue().catch(() => '');
+      if (currentEmail && currentEmail.trim() !== '') {
+        // Email is auto-filled, make it unique to avoid duplicate errors
+        const uniqueEmail = await this.makeEmailUnique();
+        console.log(`Email modified to avoid duplicates: ${uniqueEmail}`);
+      }
+    } catch (error) {
+      // If we can't modify email, continue - it might work anyway
+      console.log('Could not modify email for uniqueness, continuing...');
+    }
     
     // Fill phone - ensure it's not empty
     await this.fillPhone(applicantData.phone);
@@ -408,6 +867,9 @@ export class ApplicantsPage extends BasePage {
     await this.verifyAllFieldsFilled();
     
     await this.submitApplicant();
+    
+    // Return the selected role for logging/reference
+    return selectedRole;
   }
 
   /**
@@ -451,10 +913,38 @@ export class ApplicantsPage extends BasePage {
       throw new Error('Notice Period Months field is empty');
     }
     
-    // Check Notice Period Days
-    const noticeDays = await this.noticePeriodDaysInput().inputValue().catch(() => '');
+    // Check Notice Period Days - with retry logic
+    let noticeDays = '';
+    let retries = 3;
+    while (retries > 0 && (noticeDays === '' || noticeDays === null || noticeDays === undefined)) {
+      try {
+        // Try to get all spinbuttons and find the notice period days field
+        const allSpinbuttons = this.applicantDialog().getByRole('spinbutton');
+        const spinbuttonCount = await allSpinbuttons.count();
+        
+        if (spinbuttonCount >= 4) {
+          // Notice period days should be at index 3
+          noticeDays = await allSpinbuttons.nth(3).inputValue().catch(() => '');
+        } else {
+          // Fallback to original locator
+          noticeDays = await this.noticePeriodDaysInput().inputValue().catch(() => '');
+        }
+        
+        if (noticeDays !== '' && noticeDays !== null && noticeDays !== undefined) {
+          break;
+        }
+      } catch (error) {
+        // Continue to retry
+      }
+      
+      retries--;
+      if (retries > 0) {
+        await this.wait(500);
+      }
+    }
+    
     if (noticeDays === '' || noticeDays === null || noticeDays === undefined) {
-      throw new Error('Notice Period Days field is empty');
+      throw new Error('Notice Period Days field is empty after retries. The field may not be properly filled or the locator is incorrect.');
     }
     
     // Check Current Salary

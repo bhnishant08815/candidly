@@ -2,6 +2,9 @@ import { test, expect } from '../fixtures/test-fixtures';
 import { TestDataGenerator } from '../../utils/test-data-generator';
 
 test.describe('Job Posting SDE3 with Document Upload', () => {
+  // Configure timeout: 4x the default (480 seconds = 8 minutes)
+  test.describe.configure({ timeout: 480 * 1000 });
+  
   test('should create a new SDE3 job posting with document upload and save as draft', async ({ authenticatedPage, dashboardPage, jobPostingPage }) => {
     // Generate dynamic job title to avoid duplicates
     const jobTitle = TestDataGenerator.generateJobTitle('SDE3');

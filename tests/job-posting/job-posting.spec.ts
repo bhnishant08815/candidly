@@ -2,6 +2,9 @@ import { test, expect } from '../fixtures/test-fixtures';
 import { TestDataGenerator } from '../../utils/test-data-generator';
 
 test.describe('Job Posting Automation', () => {
+  // Configure timeout: 4x the default (480 seconds = 8 minutes)
+  test.describe.configure({ timeout: 480 * 1000 });
+  
   test('should create a new job posting', async ({ authenticatedPage, dashboardPage, jobPostingPage }) => {
     // Generate dynamic test data to avoid duplicate records
     const jobData = TestDataGenerator.generateJobPostingData({

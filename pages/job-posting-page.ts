@@ -150,8 +150,23 @@ export class JobPostingPage extends BasePage {
     // Wait for button to be enabled (form validation might disable it)
     await expect(button).toBeEnabled({ timeout: 10000 });
     await button.click();
-    // Wait for the next step to load
-    await this.wait(1000);
+    // Wait for the next step to load - verify step 2 fields are visible
+    // Wait for either Role Summary field or AI-Powered button to appear (indicating step 2 is loaded)
+    try {
+      // Try to wait for Role Summary field (most reliable indicator of step 2)
+      await expect(this.roleSummaryInput()).toBeVisible({ timeout: 15000 });
+    } catch {
+      // If Role Summary not found, try waiting for AI-Powered button or Document Upload button
+      try {
+        await expect(this.aiPoweredButton()).toBeVisible({ timeout: 10000 });
+      } catch {
+        // If neither found, wait a bit more and check for any step 2 indicator
+        await this.wait(2000);
+        // Try one more time for Role Summary
+        await expect(this.roleSummaryInput()).toBeVisible({ timeout: 10000 });
+      }
+    }
+    await this.wait(500);
   }
 
   /**
@@ -161,9 +176,34 @@ export class JobPostingPage extends BasePage {
    */
   async clickComplexButton(): Promise<void> {
     try {
-      // Wait for the button to appear (it's on the next step after Continue)
+      // First, ensure we're on step 2 by waiting for step 2 indicators
+      // Wait for either Role Summary, AI-Powered button, or Document Upload button
+      let step2Loaded = false;
+      try {
+        await expect(this.roleSummaryInput()).toBeVisible({ timeout: 5000 });
+        step2Loaded = true;
+      } catch {
+        try {
+          await expect(this.aiPoweredButton()).toBeVisible({ timeout: 5000 });
+          step2Loaded = true;
+        } catch {
+          try {
+            await expect(this.documentUploadExtractButton()).toBeVisible({ timeout: 5000 });
+            step2Loaded = true;
+          } catch {
+            // Step 2 not loaded yet
+          }
+        }
+      }
+      
+      if (!step2Loaded) {
+        // Wait a bit more for step 2 to load
+        await this.wait(2000);
+      }
+      
+      // Now try to find and click the complex button
       const button = this.complexButton();
-      const isVisible = await button.isVisible().catch(() => false);
+      const isVisible = await button.isVisible({ timeout: 5000 }).catch(() => false);
       
       if (isVisible) {
         await expect(button).toBeEnabled({ timeout: 5000 });
@@ -171,14 +211,7 @@ export class JobPostingPage extends BasePage {
         await this.wait(500);
       } else {
         // Button not found - might not be required for this flow
-        // Try waiting a bit more in case it's still loading
-        await this.page.waitForTimeout(500);
-        const isVisibleAfterWait = await button.isVisible().catch(() => false);
-        if (isVisibleAfterWait) {
-          await expect(button).toBeEnabled();
-          await button.click();
-          await this.wait(500);
-        }
+        // This is okay, just continue
       }
     } catch (error) {
       // If button doesn't exist, it's okay - might not be needed
@@ -191,8 +224,41 @@ export class JobPostingPage extends BasePage {
    * @param summary Role summary text
    */
   async fillRoleSummary(summary: string): Promise<void> {
-    await expect(this.roleSummaryInput()).toBeVisible();
-    await this.roleSummaryInput().fill(summary);
+    // Wait for step 2 to be fully loaded - Role Summary field should be visible
+    // Try multiple strategies to find the field
+    const dialog = this.page.getByRole('dialog', { name: 'Add New Job Posting' });
+    
+    // Strategy 1: Try page-level locator
+    let roleSummaryField = this.roleSummaryInput();
+    let isVisible = await roleSummaryField.isVisible({ timeout: 10000 }).catch(() => false);
+    
+    if (!isVisible) {
+      // Strategy 2: Try dialog-scoped locator
+      roleSummaryField = dialog.getByRole('textbox', { name: 'Role Summary *' });
+      isVisible = await roleSummaryField.isVisible({ timeout: 10000 }).catch(() => false);
+    }
+    
+    if (!isVisible) {
+      // Strategy 3: Wait a bit more and try page-level again - form might still be loading
+      await this.wait(2000);
+      roleSummaryField = this.roleSummaryInput();
+      isVisible = await roleSummaryField.isVisible({ timeout: 10000 }).catch(() => false);
+    }
+    
+    if (!isVisible) {
+      // Strategy 4: Try dialog-scoped again after wait
+      roleSummaryField = dialog.getByRole('textbox', { name: 'Role Summary *' });
+      isVisible = await roleSummaryField.isVisible({ timeout: 10000 }).catch(() => false);
+    }
+    
+    if (!isVisible) {
+      throw new Error('Role Summary field not found. The form may not have progressed to step 2 after clicking Continue. Please verify that step 1 fields are filled correctly and the Continue button is working.');
+    }
+    
+    await expect(roleSummaryField).toBeVisible({ timeout: 10000 });
+    await expect(roleSummaryField).toBeEnabled();
+    await roleSummaryField.fill(summary);
+    await this.wait(300);
   }
 
   /**

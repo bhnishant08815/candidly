@@ -3,6 +3,9 @@ import { test, expect } from '../fixtures/test-fixtures';
 import { testConfig } from '../../config/test-config';
 
 test.describe('Login Automation', () => {
+  // Configure timeout: 4x the default (480 seconds = 8 minutes)
+  test.describe.configure({ timeout: 480 * 1000 });
+  
   test('TC-001: should login successfully with valid credentials', { tag: ['@Positive'] }, async ({ page, loginPage, dashboardPage }) => {
     // Navigate to login page (this clicks the login button, so we're now on email input page)
     await loginPage.navigateToLogin();

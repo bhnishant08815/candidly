@@ -7,14 +7,85 @@ export class TestDataGenerator {
   
   /**
    * Generates a unique job title with timestamp
+   * Provides diverse, realistic job titles with various levels and specializations
    */
   static generateJobTitle(baseTitle?: string): string {
-    const titles = ['Software Engineer', 'QA Engineer', 'DevOps Engineer', 'Product Manager', 
-                    'Data Scientist', 'Frontend Developer', 'Backend Developer', 'Full Stack Developer',
-                    'AI/ML Engineer', 'Cloud Architect', 'Security Engineer', 'Mobile Developer'];
-    const base = baseTitle || titles[Math.floor(Math.random() * titles.length)];
+    // If base title is provided, use it directly
+    if (baseTitle) {
+      const timestamp = Date.now().toString().slice(-6);
+      return `${baseTitle}_${timestamp}`;
+    }
+
+    // Comprehensive list of job titles organized by category
+    const levels = ['Junior', 'Senior', 'Lead', 'Principal', 'Staff', 'Associate'];
+    const engineeringRoles = [
+      'Software Engineer', 'Full Stack Developer', 'Frontend Developer', 'Backend Developer',
+      'Mobile Developer', 'iOS Developer', 'Android Developer', 'React Developer', 'Angular Developer',
+      'Vue.js Developer', 'Node.js Developer', 'Python Developer', 'Java Developer', '.NET Developer',
+      'Go Developer', 'Rust Developer', 'DevOps Engineer', 'Site Reliability Engineer', 'Platform Engineer',
+      'Cloud Engineer', 'Infrastructure Engineer', 'Security Engineer', 'QA Engineer', 'Test Engineer',
+      'Automation Engineer', 'Performance Engineer', 'Data Engineer', 'ML Engineer', 'AI Engineer',
+      'Machine Learning Engineer', 'Deep Learning Engineer', 'NLP Engineer', 'Computer Vision Engineer',
+      'Blockchain Developer', 'Game Developer', 'Embedded Systems Engineer', 'Firmware Engineer'
+    ];
+    
+    const architectureRoles = [
+      'Software Architect', 'Solution Architect', 'Cloud Architect', 'Enterprise Architect',
+      'System Architect', 'Technical Architect', 'Data Architect', 'Security Architect'
+    ];
+    
+    const managementRoles = [
+      'Engineering Manager', 'Technical Lead', 'Team Lead', 'Development Manager',
+      'Product Manager', 'Technical Product Manager', 'Program Manager', 'Project Manager',
+      'Scrum Master', 'Agile Coach', 'Delivery Manager'
+    ];
+    
+    const dataRoles = [
+      'Data Scientist', 'Data Analyst', 'Business Analyst', 'Data Engineer',
+      'Analytics Engineer', 'BI Developer', 'Research Scientist', 'Statistician'
+    ];
+    
+    const designRoles = [
+      'UI/UX Designer', 'Product Designer', 'Graphic Designer', 'Interaction Designer',
+      'Visual Designer', 'Design Systems Designer', 'UX Researcher'
+    ];
+    
+    const otherRoles = [
+      'Technical Writer', 'Developer Advocate', 'Solutions Engineer', 'Sales Engineer',
+      'Customer Success Engineer', 'Support Engineer', 'QA Lead', 'Release Manager',
+      'Build Engineer', 'Database Administrator', 'Network Engineer', 'Systems Administrator'
+    ];
+
+    // Combine all roles
+    const allRoles = [
+      ...engineeringRoles,
+      ...architectureRoles,
+      ...managementRoles,
+      ...dataRoles,
+      ...designRoles,
+      ...otherRoles
+    ];
+
+    // Randomly decide whether to add a level prefix (30% chance)
+    const shouldAddLevel = Math.random() < 0.3;
+    let selectedRole = allRoles[Math.floor(Math.random() * allRoles.length)];
+    
+    if (shouldAddLevel && !selectedRole.includes('Lead') && !selectedRole.includes('Manager') && 
+        !selectedRole.includes('Principal') && !selectedRole.includes('Staff')) {
+      const level = levels[Math.floor(Math.random() * levels.length)];
+      selectedRole = `${level} ${selectedRole}`;
+    }
+
+    // Add technology specialization for some roles (20% chance)
+    if (Math.random() < 0.2 && (selectedRole.includes('Developer') || selectedRole.includes('Engineer'))) {
+      const technologies = ['React', 'Angular', 'Vue', 'Node.js', 'Python', 'Java', 'AWS', 'Azure', 'GCP', 
+                           'Kubernetes', 'Docker', 'Microservices', 'GraphQL', 'TypeScript', 'Scala'];
+      const tech = technologies[Math.floor(Math.random() * technologies.length)];
+      selectedRole = `${selectedRole} (${tech})`;
+    }
+
     const timestamp = Date.now().toString().slice(-6);
-    return `${base}_${timestamp}`;
+    return `${selectedRole}_${timestamp}`;
   }
 
   /**
@@ -282,15 +353,15 @@ export class TestDataGenerator {
 
   /**
    * Complete applicant data object
-   * NOTE: 'role' must be provided - it should be an existing job posting title from the system
+   * NOTE: 'role' is optional - if not provided, a random role will be selected from available job postings
    */
-  static generateApplicantData(overrides: Partial<ApplicantData> & { role: string }): ApplicantData {
+  static generateApplicantData(overrides: Partial<ApplicantData> = {}): ApplicantData {
     const { role, ...restOverrides } = overrides;
     // Always generate all fields - never leave any field empty
     const defaultData: ApplicantData = {
       resumePath: 'test-resources/functionalsample.pdf',
       phone: this.generatePhoneNumber(),
-      role: role, // Must be an existing job posting
+      role: role, // Optional - if not provided, will be randomly selected from dropdown
       experienceYears: this.generateExperience(1, 10),
       experienceMonths: this.generateExperienceMonths(),
       noticePeriodMonths: this.generateNoticePeriodMonths(),
@@ -345,7 +416,7 @@ export interface JobPostingData {
 export interface ApplicantData {
   resumePath: string;
   phone: string;
-  role: string;
+  role?: string; // Optional - if not provided, will be randomly selected from available job postings
   experienceYears: string;
   experienceMonths?: string;
   noticePeriodMonths: string;

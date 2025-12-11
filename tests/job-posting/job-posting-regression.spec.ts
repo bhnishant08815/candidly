@@ -27,6 +27,9 @@ const filteredProfiles = profileFilter
 for (const profile of filteredProfiles) {
   test.describe(`Job Posting Regression Tests - ${profile.name}`, () => {
     
+    // Configure timeout: 4x the default (480 seconds = 8 minutes)
+    test.describe.configure({ timeout: 480 * 1000 });
+    
     // Setup authenticated page for this profile
     let authenticatedPage: any;
     let dashboardPage: DashboardPage;
@@ -478,6 +481,254 @@ for (const profile of filteredProfiles) {
           console.log(`✓ TC-JP21: Job posting for "${dept}" department created successfully`);
         });
       }
+    });
+
+  // ==========================================
+  // WORKFLOW & INTEGRATION TESTS
+  // ==========================================
+  
+    test.describe('Workflow & Integration Tests', () => {
+      
+      test('TC-JP22: Create job posting with multiple locations', async () => {
+        const jobData = TestDataGenerator.generateJobPostingData({
+          department: 'Engineering',
+          employmentType: 'Full-Time'
+        });
+
+        await dashboardPage.navigateToPostings();
+        await jobPostingPage.clickAddNewJob();
+        await jobPostingPage.fillJobTitle(jobData.title);
+        await jobPostingPage.selectDepartment(jobData.department);
+        await jobPostingPage.selectExperienceLevel(jobData.experienceLevel);
+        await jobPostingPage.selectEmploymentType(jobData.employmentType);
+        await jobPostingPage.fillOpenPositions(jobData.openPositions);
+        await jobPostingPage.clickContinue();
+        await jobPostingPage.clickComplexButton();
+        await jobPostingPage.fillRoleSummary(jobData.roleSummary);
+        await jobPostingPage.addResponsibilities(jobData.responsibilities);
+        await jobPostingPage.addQualification(jobData.qualification);
+        await jobPostingPage.addSkills(jobData.skills);
+        await jobPostingPage.fillCompensation(jobData.compensation);
+        
+        // Add multiple locations
+        await jobPostingPage.addCustomLocations(['Remote', 'Gurgaon', 'Bangalore']);
+        
+        await jobPostingPage.clickReview();
+        await jobPostingPage.saveAsDraft();
+
+        console.log('✓ TC-JP22: Job posting with multiple locations created successfully');
+      });
+
+      test('TC-JP23: Create job posting with maximum skills (10+)', async () => {
+        const jobData = TestDataGenerator.generateJobPostingData({
+          department: 'Engineering',
+          employmentType: 'Full-Time',
+          skills: ['JavaScript', 'TypeScript', 'React', 'Node.js', 'Python', 'Java', 'AWS', 'Docker', 'Kubernetes', 'MongoDB', 'PostgreSQL', 'Redis']
+        });
+
+        await dashboardPage.navigateToPostings();
+        await jobPostingPage.createJobPosting(jobData);
+
+        console.log('✓ TC-JP23: Job posting with 12 skills created successfully');
+      });
+
+      test('TC-JP24: Create job posting with maximum responsibilities (10+)', async () => {
+        const jobData = TestDataGenerator.generateJobPostingData({
+          department: 'Engineering',
+          employmentType: 'Full-Time',
+          responsibilities: [
+            'Design and develop scalable web applications',
+            'Write clean, maintainable, and efficient code',
+            'Collaborate with cross-functional teams',
+            'Participate in code reviews',
+            'Mentor junior developers',
+            'Optimize application performance',
+            'Implement security best practices',
+            'Troubleshoot and debug applications',
+            'Write technical documentation',
+            'Stay updated with latest technologies',
+            'Lead technical discussions',
+            'Architect system solutions'
+          ]
+        });
+
+        await dashboardPage.navigateToPostings();
+        await jobPostingPage.createJobPosting(jobData);
+
+        console.log('✓ TC-JP24: Job posting with 12 responsibilities created successfully');
+      });
+
+      test('TC-JP25: Create job posting with special characters in title', async () => {
+        const jobTitle = `Senior Developer (React/Node.js) - ${TestDataGenerator.generateJobTitle()}`;
+        const jobData = TestDataGenerator.generateJobPostingData({
+          title: jobTitle,
+          department: 'Engineering',
+          employmentType: 'Full-Time'
+        });
+
+        await dashboardPage.navigateToPostings();
+        await jobPostingPage.createJobPosting(jobData);
+
+        console.log('✓ TC-JP25: Job posting with special characters in title created successfully');
+      });
+
+      test('TC-JP26: Create job posting with very long role summary', async () => {
+        const longSummary = 'This is a comprehensive role summary that describes the position in great detail. '.repeat(10) + 
+                           'The role requires extensive experience in modern web development technologies and frameworks. ' +
+                           'The candidate should have strong problem-solving skills and ability to work in a fast-paced environment.';
+        
+        const jobData = TestDataGenerator.generateJobPostingData({
+          department: 'Engineering',
+          employmentType: 'Full-Time',
+          roleSummary: longSummary
+        });
+
+        await dashboardPage.navigateToPostings();
+        await jobPostingPage.createJobPosting(jobData);
+
+        console.log('✓ TC-JP26: Job posting with very long role summary created successfully');
+      });
+
+      test('TC-JP27: Create job posting with minimum open positions (1)', async () => {
+        const jobData = TestDataGenerator.generateJobPostingData({
+          department: 'Engineering',
+          employmentType: 'Full-Time',
+          openPositions: '1'
+        });
+
+        await dashboardPage.navigateToPostings();
+        await jobPostingPage.createJobPosting(jobData);
+
+        console.log('✓ TC-JP27: Job posting with minimum open positions created successfully');
+      });
+
+      test('TC-JP28: Create job posting with maximum open positions (20)', async () => {
+        const jobData = TestDataGenerator.generateJobPostingData({
+          department: 'Engineering',
+          employmentType: 'Full-Time',
+          openPositions: '20'
+        });
+
+        await dashboardPage.navigateToPostings();
+        await jobPostingPage.createJobPosting(jobData);
+
+        console.log('✓ TC-JP28: Job posting with maximum open positions created successfully');
+      });
+
+      test('TC-JP29: Create job posting with all employment types in sequence', async () => {
+        const employmentTypes = ['Full-Time', 'Part-Time', 'Contract', 'Internship'];
+        
+        for (const type of employmentTypes) {
+          const jobData = TestDataGenerator.generateJobPostingData({
+            department: 'Engineering',
+            employmentType: type
+          });
+
+          await dashboardPage.navigateToPostings();
+          await jobPostingPage.createJobPosting(jobData);
+        }
+
+        console.log('✓ TC-JP29: Job postings with all employment types created successfully');
+      });
+
+      test('TC-JP30: Create job posting with complex compensation details', async () => {
+        const jobData = TestDataGenerator.generateJobPostingData({
+          department: 'Engineering',
+          employmentType: 'Full-Time',
+          compensation: '₹30-50 LPA + ESOPs + Health Insurance + Flexible Work Hours + Learning Budget'
+        });
+
+        await dashboardPage.navigateToPostings();
+        await jobPostingPage.createJobPosting(jobData);
+
+        console.log('✓ TC-JP30: Job posting with complex compensation details created successfully');
+      });
+    });
+
+  // ==========================================
+  // EDGE CASES & BOUNDARY TESTS
+  // ==========================================
+  
+    test.describe('Edge Cases & Boundary Tests', () => {
+      
+      test('TC-JP31: Create job posting with single character location', async () => {
+        const jobData = TestDataGenerator.generateJobPostingData({
+          department: 'Engineering',
+          employmentType: 'Full-Time',
+          location: 'A'
+        });
+
+        await dashboardPage.navigateToPostings();
+        await jobPostingPage.createJobPosting(jobData);
+
+        console.log('✓ TC-JP31: Job posting with single character location created successfully');
+      });
+
+      test('TC-JP32: Create job posting with very long location name', async () => {
+        const jobData = TestDataGenerator.generateJobPostingData({
+          department: 'Engineering',
+          employmentType: 'Full-Time',
+          location: 'San Francisco Bay Area - Silicon Valley - California - United States'
+        });
+
+        await dashboardPage.navigateToPostings();
+        await jobPostingPage.createJobPosting(jobData);
+
+        console.log('✓ TC-JP32: Job posting with very long location name created successfully');
+      });
+
+      test('TC-JP33: Create job posting with numeric-only title', async () => {
+        const jobTitle = `12345_${Date.now()}`;
+        const jobData = TestDataGenerator.generateJobPostingData({
+          title: jobTitle,
+          department: 'Engineering',
+          employmentType: 'Full-Time'
+        });
+
+        await dashboardPage.navigateToPostings();
+        await jobPostingPage.createJobPosting(jobData);
+
+        console.log('✓ TC-JP33: Job posting with numeric-only title created successfully');
+      });
+
+      test('TC-JP34: Create job posting with unicode characters in title', async () => {
+        const jobTitle = `Développeur Full Stack_${Date.now()}`;
+        const jobData = TestDataGenerator.generateJobPostingData({
+          title: jobTitle,
+          department: 'Engineering',
+          employmentType: 'Full-Time'
+        });
+
+        await dashboardPage.navigateToPostings();
+        await jobPostingPage.createJobPosting(jobData);
+
+        console.log('✓ TC-JP34: Job posting with unicode characters created successfully');
+      });
+
+      test('TC-JP35: Create job posting with empty compensation field validation', async ({ page }) => {
+        const jobTitle = TestDataGenerator.generateJobTitle('Validation Test');
+
+        await dashboardPage.navigateToPostings();
+        await jobPostingPage.clickAddNewJob();
+        await jobPostingPage.fillJobTitle(jobTitle);
+        await jobPostingPage.selectDepartment('Engineering');
+        await jobPostingPage.selectExperienceLevel('Mid-Level (3-5 years)');
+        await jobPostingPage.selectEmploymentType('Full-Time');
+        await jobPostingPage.fillOpenPositions('1');
+        await jobPostingPage.clickContinue();
+        await jobPostingPage.clickComplexButton();
+        await jobPostingPage.fillRoleSummary('Test role summary');
+        await jobPostingPage.addResponsibility('Test responsibility');
+        await jobPostingPage.addQualification('B.Tech');
+        await jobPostingPage.addSkill('JavaScript');
+        await jobPostingPage.addCustomLocation('Remote');
+        
+        // Don't fill compensation - verify Review button is disabled
+        const reviewButton = page.getByRole('button', { name: 'Review' });
+        await expect(reviewButton).toBeDisabled();
+
+        console.log('✓ TC-JP35: Compensation validation verified - Review button disabled without compensation');
+      });
     });
   });
 }

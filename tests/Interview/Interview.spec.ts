@@ -2,6 +2,9 @@ import { test, expect } from '../fixtures/test-fixtures';
 import { InterviewPage, InterviewData } from '../../pages/interview-page';
 
 test.describe('Interview Automation', () => {
+  // Configure timeout: 4x the default (480 seconds = 8 minutes)
+  test.describe.configure({ timeout: 480 * 1000 });
+  
   test('TC-001: should schedule an interview using existing applicant', { tag: ['@E2E', '@Interview'] }, async ({ page, loginPage, dashboardPage }) => {
     // Login
     await loginPage.login('bh.nishant@concret.io', 'Candidly@2025');

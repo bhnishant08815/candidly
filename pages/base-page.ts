@@ -54,7 +54,20 @@ export class BasePage {
     await fileInputLocator.setInputFiles(filePath);
     
     if (waitForSelector) {
-      await expect(waitForSelector).toBeVisible({ timeout });
+      // Wait for the selector with more flexible error handling
+      try {
+        await expect(waitForSelector).toBeVisible({ timeout });
+      } catch (error) {
+        // If the specific selector doesn't appear, wait a bit and check for alternative indicators
+        await this.wait(2000);
+        // Try to find any combobox or form field as an alternative indicator
+        const alternativeIndicator = this.page.getByRole('combobox').first();
+        const isVisible = await alternativeIndicator.isVisible({ timeout: 5000 }).catch(() => false);
+        if (!isVisible) {
+          // If still not visible, throw the original error with more context
+          throw new Error(`Upload completed but expected element not found. Original error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
     }
     
     await this.wait(1000);
