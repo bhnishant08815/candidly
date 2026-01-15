@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { LoginPage } from '../../pages/login-page';
 import { DashboardPage } from '../../pages/dashboard-page';
 import { ApplicantsPage } from '../../pages/applicants-page';
-import { TestDataGenerator } from '../../utils/test-data-generator';
+import { TestDataGenerator } from '../../utils/data/test-data-generator';
 import { testConfig } from '../../config/test-config';
 
 /**
@@ -25,7 +25,7 @@ const filteredProfiles = profileFilter
 
 // Run tests for each profile
 for (const profile of filteredProfiles) {
-  test.describe(`Applicants Regression Tests - ${profile.name}`, () => {
+  test.describe(`Applicants Regression Tests @Regression - ${profile.name}`, () => {
     
     // Configure timeout: 4x the default (480 seconds = 8 minutes)
     test.describe.configure({ timeout: 480 * 1000 });
@@ -47,8 +47,14 @@ for (const profile of filteredProfiles) {
     });
 
     test.afterEach(async () => {
-      if (dashboardPage) {
-        await dashboardPage.logout();
+      // Logout after each test case (even if test failed)
+      try {
+        if (dashboardPage) {
+          await dashboardPage.logout();
+        }
+      } catch (error) {
+        // Log error but don't fail - logout might fail if page state is unexpected
+        console.log(`Logout in afterEach failed: ${error}`);
       }
     });
   
@@ -84,8 +90,9 @@ for (const profile of filteredProfiles) {
       await applicantsPage.clickAddApplicant();
       await applicantsPage.uploadResume(applicantData.resumePath);
       
-      // Wait for auto-filled fields
-      await applicantsPage.wait(1000);
+      // Wait for auto-filled fields to appear (check for role combobox to be visible)
+      const dialog = page.getByRole('dialog', { name: 'Add New Applicant' });
+      await expect(dialog.getByRole('combobox').first()).toBeVisible({ timeout: 10000 });
       
       // Make email unique to avoid duplicate errors (using the public method)
       try {
@@ -389,7 +396,11 @@ for (const profile of filteredProfiles) {
           role: role
         });
         await applicantsPage.addApplicant(applicantData);
-        await applicantsPage.wait(1000); // Wait between additions
+        // Wait for applicant dialog to close before next addition
+        const dialog = page.getByRole('dialog', { name: /Add New Applicant/i });
+        await expect(dialog).not.toBeVisible({ timeout: 5000 }).catch(() => {
+          // Dialog might already be closed, continue
+        });
       }
 
       console.log(`✓ TC-A16: Added 3 applicants for role "${role}" successfully`);
@@ -413,7 +424,11 @@ for (const profile of filteredProfiles) {
           expectedSalary: currency.expected
         });
         await applicantsPage.addApplicant(applicantData);
-        await applicantsPage.wait(1000);
+        // Wait for applicant dialog to close before next addition
+        const dialog = page.getByRole('dialog', { name: /Add New Applicant/i });
+        await expect(dialog).not.toBeVisible({ timeout: 5000 }).catch(() => {
+          // Dialog might already be closed, continue
+        });
       }
 
       console.log('✓ TC-A17: Added applicants with different currencies (INR, USD, EUR) successfully');

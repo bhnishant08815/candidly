@@ -1,0 +1,385 @@
+﻿{
+  "config": {
+    "configFile": "C:\\Users\\Lenovo\\Desktop\\Candidly\\playwright.config.ts",
+    "rootDir": "C:/Users/Lenovo/Desktop/Candidly/tests",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 2
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "C:/Users/Lenovo/Desktop/Candidly/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 2
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "C:/Users/Lenovo/Desktop/Candidly/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 80000
+      }
+    ],
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.57.0",
+    "workers": 6,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "Interview\\Interview.spec.ts",
+      "file": "Interview/Interview.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Interview Automation Tests - Admin Profile",
+          "file": "Interview/Interview.spec.ts",
+          "line": 43,
+          "column": 8,
+          "specs": [],
+          "suites": [
+            {
+              "title": "Interview Scheduling - Positive Cases",
+              "file": "Interview/Interview.spec.ts",
+              "line": 74,
+              "column": 10,
+              "specs": [
+                {
+                  "title": "TC-INT-005: Schedule interview for different future dates",
+                  "ok": false,
+                  "tags": [
+                    "E2E",
+                    "Interview"
+                  ],
+                  "tests": [
+                    {
+                      "timeout": 480000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "failed",
+                          "duration": 16730,
+                          "error": {
+                            "message": "Error: DUPLICATE INTERVIEW ERROR: An interview is already scheduled for this candidate with the same time, date, and round. Please use a different time, date, or round.",
+                            "stack": "Error: DUPLICATE INTERVIEW ERROR: An interview is already scheduled for this candidate with the same time, date, and round. Please use a different time, date, or round.\n    at InterviewPage.submitSchedule (C:\\Users\\Lenovo\\Desktop\\Candidly\\pages\\interview-page.ts:261:13)\n    at InterviewPage.scheduleInterview (C:\\Users\\Lenovo\\Desktop\\Candidly\\pages\\interview-page.ts:424:7)\n    at C:\\Users\\Lenovo\\Desktop\\Candidly\\tests\\Interview\\Interview.spec.ts:187:37",
+                            "location": {
+                              "file": "C:\\Users\\Lenovo\\Desktop\\Candidly\\pages\\interview-page.ts",
+                              "column": 13,
+                              "line": 261
+                            },
+                            "snippet": "\u001b[90m   at \u001b[39m..\\pages\\interview-page.ts:261\n\n\u001b[0m \u001b[90m 259 |\u001b[39m     \u001b[36mconst\u001b[39m hasDuplicateError \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m \u001b[36mthis\u001b[39m\u001b[33m.\u001b[39mcheckForDuplicateInterviewError()\u001b[33m;\u001b[39m\n \u001b[90m 260 |\u001b[39m     \u001b[36mif\u001b[39m (hasDuplicateError) {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 261 |\u001b[39m       \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\u001b[32m'DUPLICATE INTERVIEW ERROR: An interview is already scheduled for this candidate with the same time, date, and round. Please use a different time, date, or round.'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m             \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 262 |\u001b[39m     }\n \u001b[90m 263 |\u001b[39m   }\n \u001b[90m 264 |\u001b[39m\u001b[0m"
+                          },
+                          "errors": [
+                            {
+                              "location": {
+                                "file": "C:\\Users\\Lenovo\\Desktop\\Candidly\\pages\\interview-page.ts",
+                                "column": 13,
+                                "line": 261
+                              },
+                              "message": "Error: DUPLICATE INTERVIEW ERROR: An interview is already scheduled for this candidate with the same time, date, and round. Please use a different time, date, or round.\n\n   at ..\\pages\\interview-page.ts:261\n\n  259 |     const hasDuplicateError = await this.checkForDuplicateInterviewError();\n  260 |     if (hasDuplicateError) {\n> 261 |       throw new Error('DUPLICATE INTERVIEW ERROR: An interview is already scheduled for this candidate with the same time, date, and round. Please use a different time, date, or round.');\n      |             ^\n  262 |     }\n  263 |   }\n  264 |\n    at InterviewPage.submitSchedule (C:\\Users\\Lenovo\\Desktop\\Candidly\\pages\\interview-page.ts:261:13)\n    at InterviewPage.scheduleInterview (C:\\Users\\Lenovo\\Desktop\\Candidly\\pages\\interview-page.ts:424:7)\n    at C:\\Users\\Lenovo\\Desktop\\Candidly\\tests\\Interview\\Interview.spec.ts:187:37"
+                            }
+                          ],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-18T12:04:47.043Z",
+                          "annotations": [],
+                          "attachments": [
+                            {
+                              "name": "screenshot",
+                              "contentType": "image/png",
+                              "path": "C:\\Users\\Lenovo\\Desktop\\Candidly\\test-results\\Interview-Interview-Interv-37fc4--for-different-future-dates-chromium\\test-failed-1.png"
+                            },
+                            {
+                              "name": "video",
+                              "contentType": "video/webm",
+                              "path": "C:\\Users\\Lenovo\\Desktop\\Candidly\\test-results\\Interview-Interview-Interv-37fc4--for-different-future-dates-chromium\\video.webm"
+                            },
+                            {
+                              "name": "error-context",
+                              "contentType": "text/markdown",
+                              "path": "C:\\Users\\Lenovo\\Desktop\\Candidly\\test-results\\Interview-Interview-Interv-37fc4--for-different-future-dates-chromium\\error-context.md"
+                            }
+                          ],
+                          "errorLocation": {
+                            "file": "C:\\Users\\Lenovo\\Desktop\\Candidly\\pages\\interview-page.ts",
+                            "column": 13,
+                            "line": 261
+                          }
+                        },
+                        {
+                          "workerIndex": 3,
+                          "parallelIndex": 0,
+                          "status": "failed",
+                          "duration": 18252,
+                          "error": {
+                            "message": "Error: DUPLICATE INTERVIEW ERROR: An interview is already scheduled for this candidate with the same time, date, and round. Please use a different time, date, or round.",
+                            "stack": "Error: DUPLICATE INTERVIEW ERROR: An interview is already scheduled for this candidate with the same time, date, and round. Please use a different time, date, or round.\n    at InterviewPage.submitSchedule (C:\\Users\\Lenovo\\Desktop\\Candidly\\pages\\interview-page.ts:261:13)\n    at InterviewPage.scheduleInterview (C:\\Users\\Lenovo\\Desktop\\Candidly\\pages\\interview-page.ts:424:7)\n    at C:\\Users\\Lenovo\\Desktop\\Candidly\\tests\\Interview\\Interview.spec.ts:187:37",
+                            "location": {
+                              "file": "C:\\Users\\Lenovo\\Desktop\\Candidly\\pages\\interview-page.ts",
+                              "column": 13,
+                              "line": 261
+                            },
+                            "snippet": "\u001b[90m   at \u001b[39m..\\pages\\interview-page.ts:261\n\n\u001b[0m \u001b[90m 259 |\u001b[39m     \u001b[36mconst\u001b[39m hasDuplicateError \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m \u001b[36mthis\u001b[39m\u001b[33m.\u001b[39mcheckForDuplicateInterviewError()\u001b[33m;\u001b[39m\n \u001b[90m 260 |\u001b[39m     \u001b[36mif\u001b[39m (hasDuplicateError) {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 261 |\u001b[39m       \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\u001b[32m'DUPLICATE INTERVIEW ERROR: An interview is already scheduled for this candidate with the same time, date, and round. Please use a different time, date, or round.'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m             \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 262 |\u001b[39m     }\n \u001b[90m 263 |\u001b[39m   }\n \u001b[90m 264 |\u001b[39m\u001b[0m"
+                          },
+                          "errors": [
+                            {
+                              "location": {
+                                "file": "C:\\Users\\Lenovo\\Desktop\\Candidly\\pages\\interview-page.ts",
+                                "column": 13,
+                                "line": 261
+                              },
+                              "message": "Error: DUPLICATE INTERVIEW ERROR: An interview is already scheduled for this candidate with the same time, date, and round. Please use a different time, date, or round.\n\n   at ..\\pages\\interview-page.ts:261\n\n  259 |     const hasDuplicateError = await this.checkForDuplicateInterviewError();\n  260 |     if (hasDuplicateError) {\n> 261 |       throw new Error('DUPLICATE INTERVIEW ERROR: An interview is already scheduled for this candidate with the same time, date, and round. Please use a different time, date, or round.');\n      |             ^\n  262 |     }\n  263 |   }\n  264 |\n    at InterviewPage.submitSchedule (C:\\Users\\Lenovo\\Desktop\\Candidly\\pages\\interview-page.ts:261:13)\n    at InterviewPage.scheduleInterview (C:\\Users\\Lenovo\\Desktop\\Candidly\\pages\\interview-page.ts:424:7)\n    at C:\\Users\\Lenovo\\Desktop\\Candidly\\tests\\Interview\\Interview.spec.ts:187:37"
+                            }
+                          ],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 1,
+                          "startTime": "2025-12-18T12:05:05.875Z",
+                          "annotations": [],
+                          "attachments": [
+                            {
+                              "name": "screenshot",
+                              "contentType": "image/png",
+                              "path": "C:\\Users\\Lenovo\\Desktop\\Candidly\\test-results\\Interview-Interview-Interv-37fc4--for-different-future-dates-chromium-retry1\\test-failed-1.png"
+                            },
+                            {
+                              "name": "video",
+                              "contentType": "video/webm",
+                              "path": "C:\\Users\\Lenovo\\Desktop\\Candidly\\test-results\\Interview-Interview-Interv-37fc4--for-different-future-dates-chromium-retry1\\video.webm"
+                            },
+                            {
+                              "name": "error-context",
+                              "contentType": "text/markdown",
+                              "path": "C:\\Users\\Lenovo\\Desktop\\Candidly\\test-results\\Interview-Interview-Interv-37fc4--for-different-future-dates-chromium-retry1\\error-context.md"
+                            },
+                            {
+                              "name": "trace",
+                              "contentType": "application/zip",
+                              "path": "C:\\Users\\Lenovo\\Desktop\\Candidly\\test-results\\Interview-Interview-Interv-37fc4--for-different-future-dates-chromium-retry1\\trace.zip"
+                            }
+                          ],
+                          "errorLocation": {
+                            "file": "C:\\Users\\Lenovo\\Desktop\\Candidly\\pages\\interview-page.ts",
+                            "column": 13,
+                            "line": 261
+                          }
+                        }
+                      ],
+                      "status": "unexpected"
+                    }
+                  ],
+                  "id": "4b0b8a14326d76b3769c-0ce585877959d8f953b7",
+                  "file": "Interview/Interview.spec.ts",
+                  "line": 162,
+                  "column": 11
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Interview Automation Tests - HR Profile",
+          "file": "Interview/Interview.spec.ts",
+          "line": 43,
+          "column": 8,
+          "specs": [],
+          "suites": [
+            {
+              "title": "Interview Scheduling - Positive Cases",
+              "file": "Interview/Interview.spec.ts",
+              "line": 74,
+              "column": 10,
+              "specs": [
+                {
+                  "title": "TC-INT-005: Schedule interview for different future dates",
+                  "ok": false,
+                  "tags": [
+                    "E2E",
+                    "Interview"
+                  ],
+                  "tests": [
+                    {
+                      "timeout": 480000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 1,
+                          "status": "failed",
+                          "duration": 16354,
+                          "error": {
+                            "message": "Error: DUPLICATE INTERVIEW ERROR: An interview is already scheduled for this candidate with the same time, date, and round. Please use a different time, date, or round.",
+                            "stack": "Error: DUPLICATE INTERVIEW ERROR: An interview is already scheduled for this candidate with the same time, date, and round. Please use a different time, date, or round.\n    at InterviewPage.submitSchedule (C:\\Users\\Lenovo\\Desktop\\Candidly\\pages\\interview-page.ts:261:13)\n    at InterviewPage.scheduleInterview (C:\\Users\\Lenovo\\Desktop\\Candidly\\pages\\interview-page.ts:424:7)\n    at C:\\Users\\Lenovo\\Desktop\\Candidly\\tests\\Interview\\Interview.spec.ts:187:37",
+                            "location": {
+                              "file": "C:\\Users\\Lenovo\\Desktop\\Candidly\\pages\\interview-page.ts",
+                              "column": 13,
+                              "line": 261
+                            },
+                            "snippet": "\u001b[90m   at \u001b[39m..\\pages\\interview-page.ts:261\n\n\u001b[0m \u001b[90m 259 |\u001b[39m     \u001b[36mconst\u001b[39m hasDuplicateError \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m \u001b[36mthis\u001b[39m\u001b[33m.\u001b[39mcheckForDuplicateInterviewError()\u001b[33m;\u001b[39m\n \u001b[90m 260 |\u001b[39m     \u001b[36mif\u001b[39m (hasDuplicateError) {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 261 |\u001b[39m       \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\u001b[32m'DUPLICATE INTERVIEW ERROR: An interview is already scheduled for this candidate with the same time, date, and round. Please use a different time, date, or round.'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m             \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 262 |\u001b[39m     }\n \u001b[90m 263 |\u001b[39m   }\n \u001b[90m 264 |\u001b[39m\u001b[0m"
+                          },
+                          "errors": [
+                            {
+                              "location": {
+                                "file": "C:\\Users\\Lenovo\\Desktop\\Candidly\\pages\\interview-page.ts",
+                                "column": 13,
+                                "line": 261
+                              },
+                              "message": "Error: DUPLICATE INTERVIEW ERROR: An interview is already scheduled for this candidate with the same time, date, and round. Please use a different time, date, or round.\n\n   at ..\\pages\\interview-page.ts:261\n\n  259 |     const hasDuplicateError = await this.checkForDuplicateInterviewError();\n  260 |     if (hasDuplicateError) {\n> 261 |       throw new Error('DUPLICATE INTERVIEW ERROR: An interview is already scheduled for this candidate with the same time, date, and round. Please use a different time, date, or round.');\n      |             ^\n  262 |     }\n  263 |   }\n  264 |\n    at InterviewPage.submitSchedule (C:\\Users\\Lenovo\\Desktop\\Candidly\\pages\\interview-page.ts:261:13)\n    at InterviewPage.scheduleInterview (C:\\Users\\Lenovo\\Desktop\\Candidly\\pages\\interview-page.ts:424:7)\n    at C:\\Users\\Lenovo\\Desktop\\Candidly\\tests\\Interview\\Interview.spec.ts:187:37"
+                            }
+                          ],
+                          "stdout": [
+                            {
+                              "text": "Logout skipped: User profile button not visible (already logged out?)\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2025-12-18T12:04:47.042Z",
+                          "annotations": [],
+                          "attachments": [
+                            {
+                              "name": "screenshot",
+                              "contentType": "image/png",
+                              "path": "C:\\Users\\Lenovo\\Desktop\\Candidly\\test-results\\Interview-Interview-Interv-4421f--for-different-future-dates-chromium\\test-failed-1.png"
+                            },
+                            {
+                              "name": "video",
+                              "contentType": "video/webm",
+                              "path": "C:\\Users\\Lenovo\\Desktop\\Candidly\\test-results\\Interview-Interview-Interv-4421f--for-different-future-dates-chromium\\video.webm"
+                            },
+                            {
+                              "name": "error-context",
+                              "contentType": "text/markdown",
+                              "path": "C:\\Users\\Lenovo\\Desktop\\Candidly\\test-results\\Interview-Interview-Interv-4421f--for-different-future-dates-chromium\\error-context.md"
+                            }
+                          ],
+                          "errorLocation": {
+                            "file": "C:\\Users\\Lenovo\\Desktop\\Candidly\\pages\\interview-page.ts",
+                            "column": 13,
+                            "line": 261
+                          }
+                        },
+                        {
+                          "workerIndex": 2,
+                          "parallelIndex": 1,
+                          "status": "failed",
+                          "duration": 17534,
+                          "error": {
+                            "message": "Error: DUPLICATE INTERVIEW ERROR: An interview is already scheduled for this candidate with the same time, date, and round. Please use a different time, date, or round.",
+                            "stack": "Error: DUPLICATE INTERVIEW ERROR: An interview is already scheduled for this candidate with the same time, date, and round. Please use a different time, date, or round.\n    at InterviewPage.submitSchedule (C:\\Users\\Lenovo\\Desktop\\Candidly\\pages\\interview-page.ts:261:13)\n    at InterviewPage.scheduleInterview (C:\\Users\\Lenovo\\Desktop\\Candidly\\pages\\interview-page.ts:424:7)\n    at C:\\Users\\Lenovo\\Desktop\\Candidly\\tests\\Interview\\Interview.spec.ts:187:37",
+                            "location": {
+                              "file": "C:\\Users\\Lenovo\\Desktop\\Candidly\\pages\\interview-page.ts",
+                              "column": 13,
+                              "line": 261
+                            },
+                            "snippet": "\u001b[90m   at \u001b[39m..\\pages\\interview-page.ts:261\n\n\u001b[0m \u001b[90m 259 |\u001b[39m     \u001b[36mconst\u001b[39m hasDuplicateError \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m \u001b[36mthis\u001b[39m\u001b[33m.\u001b[39mcheckForDuplicateInterviewError()\u001b[33m;\u001b[39m\n \u001b[90m 260 |\u001b[39m     \u001b[36mif\u001b[39m (hasDuplicateError) {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 261 |\u001b[39m       \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\u001b[32m'DUPLICATE INTERVIEW ERROR: An interview is already scheduled for this candidate with the same time, date, and round. Please use a different time, date, or round.'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m             \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 262 |\u001b[39m     }\n \u001b[90m 263 |\u001b[39m   }\n \u001b[90m 264 |\u001b[39m\u001b[0m"
+                          },
+                          "errors": [
+                            {
+                              "location": {
+                                "file": "C:\\Users\\Lenovo\\Desktop\\Candidly\\pages\\interview-page.ts",
+                                "column": 13,
+                                "line": 261
+                              },
+                              "message": "Error: DUPLICATE INTERVIEW ERROR: An interview is already scheduled for this candidate with the same time, date, and round. Please use a different time, date, or round.\n\n   at ..\\pages\\interview-page.ts:261\n\n  259 |     const hasDuplicateError = await this.checkForDuplicateInterviewError();\n  260 |     if (hasDuplicateError) {\n> 261 |       throw new Error('DUPLICATE INTERVIEW ERROR: An interview is already scheduled for this candidate with the same time, date, and round. Please use a different time, date, or round.');\n      |             ^\n  262 |     }\n  263 |   }\n  264 |\n    at InterviewPage.submitSchedule (C:\\Users\\Lenovo\\Desktop\\Candidly\\pages\\interview-page.ts:261:13)\n    at InterviewPage.scheduleInterview (C:\\Users\\Lenovo\\Desktop\\Candidly\\pages\\interview-page.ts:424:7)\n    at C:\\Users\\Lenovo\\Desktop\\Candidly\\tests\\Interview\\Interview.spec.ts:187:37"
+                            }
+                          ],
+                          "stdout": [
+                            {
+                              "text": "Logout skipped: User profile button not visible (already logged out?)\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 1,
+                          "startTime": "2025-12-18T12:05:05.461Z",
+                          "annotations": [],
+                          "attachments": [
+                            {
+                              "name": "screenshot",
+                              "contentType": "image/png",
+                              "path": "C:\\Users\\Lenovo\\Desktop\\Candidly\\test-results\\Interview-Interview-Interv-4421f--for-different-future-dates-chromium-retry1\\test-failed-1.png"
+                            },
+                            {
+                              "name": "video",
+                              "contentType": "video/webm",
+                              "path": "C:\\Users\\Lenovo\\Desktop\\Candidly\\test-results\\Interview-Interview-Interv-4421f--for-different-future-dates-chromium-retry1\\video.webm"
+                            },
+                            {
+                              "name": "error-context",
+                              "contentType": "text/markdown",
+                              "path": "C:\\Users\\Lenovo\\Desktop\\Candidly\\test-results\\Interview-Interview-Interv-4421f--for-different-future-dates-chromium-retry1\\error-context.md"
+                            },
+                            {
+                              "name": "trace",
+                              "contentType": "application/zip",
+                              "path": "C:\\Users\\Lenovo\\Desktop\\Candidly\\test-results\\Interview-Interview-Interv-4421f--for-different-future-dates-chromium-retry1\\trace.zip"
+                            }
+                          ],
+                          "errorLocation": {
+                            "file": "C:\\Users\\Lenovo\\Desktop\\Candidly\\pages\\interview-page.ts",
+                            "column": 13,
+                            "line": 261
+                          }
+                        }
+                      ],
+                      "status": "unexpected"
+                    }
+                  ],
+                  "id": "4b0b8a14326d76b3769c-dfe81939692be46d89f3",
+                  "file": "Interview/Interview.spec.ts",
+                  "line": 162,
+                  "column": 11
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2025-12-18T12:04:45.836Z",
+    "duration": 39250.67,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 2,
+    "flaky": 0
+  }
+}

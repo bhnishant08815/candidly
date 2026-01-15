@@ -5,4 +5,6 @@ playwright-report/
 playwright/.cache/
 .env
 *.log
+auth-state.json
+auth-state-hr.json
 

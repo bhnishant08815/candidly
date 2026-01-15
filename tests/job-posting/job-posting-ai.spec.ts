@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures/test-fixtures';
-import { TestDataGenerator } from '../../utils/test-data-generator';
+import { TestDataGenerator } from '../../utils/data/test-data-generator';
 
 test.describe('AI-Powered Job Posting', () => {
   // Configure timeout: 4x the default (480 seconds = 8 minutes)
@@ -22,6 +22,10 @@ test.describe('AI-Powered Job Posting', () => {
     await jobPostingPage.selectExperienceLevel('Entry Level (0-1 year)');
     await jobPostingPage.selectEmploymentType('Full-Time');
     await jobPostingPage.fillOpenPositions('2');
+
+    await jobPostingPage.fillOpenPositions('2');
+    await jobPostingPage.fillExpectedClosingDate(TestDataGenerator.generateExpectedClosingDate());
+    await jobPostingPage.selectAssignedToHr(TestDataGenerator.generateAssignedToHr());
 
     // Continue to next step
     await jobPostingPage.clickContinue();

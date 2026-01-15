@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures/test-fixtures';
-import { TestDataGenerator } from '../../utils/test-data-generator';
+import { TestDataGenerator } from '../../utils/data/test-data-generator';
 
 test.describe('Job Posting Automation', () => {
   // Configure timeout: 4x the default (480 seconds = 8 minutes)

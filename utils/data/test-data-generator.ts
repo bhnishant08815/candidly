@@ -3,6 +3,9 @@
  * Generates dynamic test data to avoid duplicate record issues
  */
 
+import { generateUniqueId, formatDateToISO } from './date-name-utils';
+import { testConfig } from '../config/test-config';
+
 export class TestDataGenerator {
   
   /**
@@ -12,8 +15,8 @@ export class TestDataGenerator {
   static generateJobTitle(baseTitle?: string): string {
     // If base title is provided, use it directly
     if (baseTitle) {
-      const timestamp = Date.now().toString().slice(-6);
-      return `${baseTitle}_${timestamp}`;
+      const uniqueId = generateUniqueId(6);
+      return `${baseTitle}_${uniqueId}`;
     }
 
     // Comprehensive list of job titles organized by category
@@ -84,8 +87,8 @@ export class TestDataGenerator {
       selectedRole = `${selectedRole} (${tech})`;
     }
 
-    const timestamp = Date.now().toString().slice(-6);
-    return `${selectedRole}_${timestamp}`;
+    const uniqueId = generateUniqueId(6);
+    return `${selectedRole}_${uniqueId}`;
   }
 
   /**
@@ -103,10 +106,10 @@ export class TestDataGenerator {
    */
   static generateEmail(name?: string): string {
     const baseName = name || this.generateFirstName();
-    const timestamp = Date.now().toString().slice(-6);
+    const uniqueId = generateUniqueId(6);
     const domains = ['gmail.com', 'yahoo.com', 'outlook.com', 'test.com', 'example.com'];
     const domain = domains[Math.floor(Math.random() * domains.length)];
-    return `${baseName.toLowerCase()}${timestamp}@${domain}`;
+    return `${baseName.toLowerCase()}${uniqueId}@${domain}`;
   }
 
   /**
@@ -251,6 +254,45 @@ export class TestDataGenerator {
   }
 
   /**
+   * Generates a future date for expected closing date
+   * Defaults to 30 days from now
+   */
+  static generateExpectedClosingDate(daysFromNow: number = 30): string {
+    const date = new Date();
+    date.setDate(date.getDate() + daysFromNow);
+    
+    // Format as MM/DD/YYYY to match the input requirement (as seen in browser interaction issues)
+    // However, the browser interaction showed 12/17/2025 failed with "Malformed value"
+    // The previous browser attempt tried "12/17/2025". 
+    // Let's try to ensure we use a standard format that might work with date inputs (YYYY-MM-DD is standard for value attribute, but UI might want MM/DD/YYYY)
+    // We will return a Date object string for now, and handle formatting in the Page Object or Test if specific format is strictly required by the input type.
+    // Actually, looking at the previous error "Malformed value", it suggests the input might expect a specific format or it's a date type input.
+    // Let's provide MM/DD/YYYY as a string first.
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${month}/${day}/${year}`;
+  }
+
+  /**
+   * Generates a random HR user for assignment
+   */
+  static generateAssignedToHr(): string {
+    // Prefer explicit env override (first name as shown in dropdown)
+    const explicit = (process.env.ASSIGNED_TO_HR_FIRST_NAME || '').trim();
+    if (explicit) return explicit;
+
+    // Otherwise use configured user display name and take first token.
+    // (Dropdown typically shows only the first name.)
+    const configured =
+      (testConfig.credentials.userName || '').trim() ||
+      (testConfig.hrCredentials.userName || '').trim();
+
+    const firstName = configured.split(/\s+/)[0];
+    return firstName || 'HR';
+  }
+
+  /**
    * Returns a valid existing location for job postings
    * Uses existing locations in the system to avoid creating duplicates
    */
@@ -332,6 +374,107 @@ export class TestDataGenerator {
   }
 
   /**
+   * Generates interview data with dynamic values
+   * @param overrides Optional overrides for specific fields
+   */
+  static generateInterviewData(overrides: Partial<InterviewData> = {}): InterviewData {
+    const defaultData: InterviewData = {
+      applicantName: 'SELECT_RANDOM', // Use random applicant selection by default
+      mainInterviewer: testConfig.credentials.userName || 'Nishant Bhardwaj',
+      date: this.generateFutureInterviewDate(),
+      time: this.getRandomInterviewTime(),
+      round: this.getRandomInterviewRound(),
+      ...overrides
+    };
+
+    return { ...defaultData, ...overrides };
+  }
+
+  /**
+   * Generates a future date for interview scheduling
+   * @param daysFromNow Number of days from today (default: 7-14 days range)
+   */
+  static generateFutureInterviewDate(daysFromNow?: number): string {
+    const days = daysFromNow || Math.floor(Math.random() * 7) + 7; // 7-14 days from now
+    const date = new Date();
+    date.setDate(date.getDate() + days);
+    return formatDateToISO(date);
+  }
+
+  /**
+   * Gets a random interview time slot
+   * Note: Only hourly slots are available in the UI (9:00 AM - 9:00 PM)
+   */
+  static getRandomInterviewTime(): string {
+    const times = [
+      '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', 
+      '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', 
+      '5:00 PM', '6:00 PM', '7:00 PM', '8:00 PM', '9:00 PM'
+    ];
+    return times[Math.floor(Math.random() * times.length)];
+  }
+
+  /**
+   * Gets a random interview round
+   * Excludes Tech-I and Tech-II as requested
+   * Note: Round names must match exactly as they appear in the UI (case-sensitive)
+   */
+  static getRandomInterviewRound(): string {
+    const rounds = ['HR round', 'Managerial round', 'Final HR round', 'Tech-III', 'Tech-IV', 'Tech-V'];
+    return rounds[Math.floor(Math.random() * rounds.length)];
+  }
+
+  /**
+   * Gets all available interview rounds
+   * Excludes Tech-I and Tech-II as requested
+   * Note: Round names must match exactly as they appear in the UI (case-sensitive)
+   */
+  static getAllInterviewRounds(): string[] {
+    return ['HR round', 'Managerial round', 'Final HR round', 'Tech-III', 'Tech-IV', 'Tech-V'];
+  }
+
+  /**
+   * Gets all available interview times
+   * Note: Only hourly slots are available in the UI (9:00 AM - 9:00 PM)
+   */
+  static getAllInterviewTimes(): string[] {
+    return [
+      '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', 
+      '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', 
+      '5:00 PM', '6:00 PM', '7:00 PM', '8:00 PM', '9:00 PM'
+    ];
+  }
+
+  /**
+   * Generates multiple interview data sets for data-driven testing
+   * Each interview will have different random round, date, and time
+   * @param count Number of interview data sets to generate
+   */
+  static generateMultipleInterviewData(count: number = 3): InterviewData[] {
+    const interviews: InterviewData[] = [];
+    const usedDates = new Set<number>();
+    
+    for (let i = 0; i < count; i++) {
+      // Ensure each interview has a different date offset
+      let dateOffset: number;
+      do {
+        dateOffset = Math.floor(Math.random() * 21) + 7 + (i * 2); // 7-27 days + stagger
+      } while (usedDates.has(dateOffset));
+      usedDates.add(dateOffset);
+      
+      // Generate unique random data for each interview
+      const interview = this.generateInterviewData({
+        date: this.generateFutureInterviewDate(dateOffset),
+        round: this.getRandomInterviewRound(),
+        time: this.getRandomInterviewTime()
+      });
+      
+      interviews.push(interview);
+    }
+    return interviews;
+  }
+
+  /**
    * Complete job posting data object
    */
   static generateJobPostingData(overrides: Partial<JobPostingData> = {}): JobPostingData {
@@ -347,6 +490,8 @@ export class TestDataGenerator {
       skills: this.getRandomSkills(),
       compensation: this.generateCompensation(),
       location: this.generateCustomLocation(),
+      expectedClosingDate: this.generateExpectedClosingDate(),
+      assignedToHr: this.generateAssignedToHr(),
       ...overrides
     };
   }
@@ -411,6 +556,8 @@ export interface JobPostingData {
   skills: string[];
   compensation: string;
   location: string;
+  expectedClosingDate: string;
+  assignedToHr: string;
 }
 
 export interface ApplicantData {
@@ -427,4 +574,13 @@ export interface ApplicantData {
   workExperience?: string;
   skills?: string;
   currency?: string;
+}
+
+export interface InterviewData {
+  applicantName: string;
+  mainInterviewer: string;
+  additionalInterviewers?: string[];
+  date: string;
+  time: string;
+  round: string;
 }

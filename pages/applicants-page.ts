@@ -1,12 +1,72 @@
 import { Page, expect } from '@playwright/test';
 import { BasePage } from './base-page';
+import { generateUniqueId, generateAlphabeticUniqueId } from '../utils/data/date-name-utils';
+import { SemanticLocator } from '../utils/element-helpers/semantic-locator';
 
 /**
  * Applicants Page Object Model
- * Handles all applicant-related interactions
+ * Handles all applicant-related interactions.
+ * Uses SemanticLocator for auto-healing capabilities on key elements.
  */
 export class ApplicantsPage extends BasePage {
-  // Locators
+  // ============ Semantic Locators with Auto-Healing ============
+
+  /**
+   * Add Applicant button with semantic context
+   */
+  private get addApplicantButtonLocator(): SemanticLocator {
+    return this.createSemanticLocator(
+      this.page.getByRole('button', { name: 'Add Applicant' }),
+      {
+        purpose: 'Add Applicant Button',
+        elementType: 'button',
+        ariaRole: 'button',
+        textPatterns: ['Add Applicant', 'New Applicant', 'Add Candidate'],
+        labelPatterns: ['Add Applicant', 'New Applicant'],
+        nearbyContext: 'applicants page header'
+      },
+      [
+        this.page.getByText('Add Applicant', { exact: true }),
+        this.page.locator('button').filter({ hasText: /Add.*Applicant/i })
+      ]
+    );
+  }
+
+  /**
+   * Submit button with semantic context
+   */
+  private get submitButtonLocator(): SemanticLocator {
+    return this.createSemanticLocator(
+      this.applicantDialog().getByRole('button', { name: 'Add Applicant' }),
+      {
+        purpose: 'Submit Applicant Form Button',
+        elementType: 'button',
+        ariaRole: 'button',
+        textPatterns: ['Add Applicant', 'Submit', 'Save'],
+        labelPatterns: ['Add Applicant', 'Submit'],
+        formContext: 'add applicant dialog'
+      }
+    );
+  }
+
+  /**
+   * Cancel button with semantic context
+   */
+  private get cancelButtonLocator(): SemanticLocator {
+    return this.createSemanticLocator(
+      this.applicantDialog().getByRole('button', { name: 'Cancel' }),
+      {
+        purpose: 'Cancel Applicant Form Button',
+        elementType: 'button',
+        ariaRole: 'button',
+        textPatterns: ['Cancel', 'Close', 'Discard'],
+        labelPatterns: ['Cancel', 'Close'],
+        formContext: 'add applicant dialog'
+      }
+    );
+  }
+
+  // Legacy locators for form fields (still using traditional approach for complex forms)
   private readonly addApplicantButton = () => this.page.getByRole('button', { name: 'Add Applicant' });
   private readonly uploadArea = () => this.page.getByText('Click to upload or drag and');
   private readonly applicantDialog = () => this.page.getByRole('dialog', { name: 'Add New Applicant' });
@@ -352,15 +412,37 @@ export class ApplicantsPage extends BasePage {
       throw new Error(`Invalid email format: ${currentEmail}`);
     }
     
-    // Add timestamp to make it unique
-    const timestamp = Date.now().toString().slice(-8);
-    const uniqueEmail = `${localPart}_${timestamp}@${domain}`;
+    // Add unique ID to make it unique
+    const uniqueId = generateUniqueId(8);
+    const uniqueEmail = `${localPart}_${uniqueId}@${domain}`;
     
     await this.emailInput().clear();
     await this.emailInput().fill(uniqueEmail);
     await this.wait(300);
     
     return uniqueEmail;
+  }
+
+  /**
+   * Modify full name to make it unique by adding a unique ID suffix
+   * Useful when dealing with duplicate applicant errors
+   * Uses alphabetic characters only to ensure name ends with a letter
+   */
+  async makeNameUnique(): Promise<string> {
+    const currentName = await this.fullNameInput().inputValue().catch(() => '');
+    if (!currentName || currentName.trim() === '') {
+      throw new Error('Cannot make name unique: name field is empty');
+    }
+    
+    // Add alphabetic unique ID to make it unique (ensures name ends with a letter)
+    const uniqueId = generateAlphabeticUniqueId(6);
+    const uniqueName = `${currentName.trim()} ${uniqueId}`;
+    
+    await this.fullNameInput().clear();
+    await this.fullNameInput().fill(uniqueName);
+    await this.wait(300);
+    
+    return uniqueName;
   }
 
   /**
@@ -603,7 +685,8 @@ export class ApplicantsPage extends BasePage {
       }
       
       // Wait for submit button to be enabled
-      await expect(this.submitButton()).toBeEnabled({ timeout: 20000 });
+      const submitLocator = await this.submitButtonLocator.getLocator();
+      await expect(submitLocator).toBeEnabled({ timeout: 20000 });
       
       // Wait for any loading states to complete before clicking
       await this.wait(500);
@@ -614,7 +697,7 @@ export class ApplicantsPage extends BasePage {
       }
       
       // Click submit and wait for network request to complete
-      const submitPromise = this.submitButton().click();
+      const submitPromise = this.submitButtonLocator.click();
       
       // Wait for network to be idle after clicking submit (form submission)
       await Promise.all([
@@ -641,7 +724,7 @@ export class ApplicantsPage extends BasePage {
         return;
       } catch (error) {
         // If dialog is still visible, check if submit button is disabled (indicating loading state)
-        const isSubmitDisabled = await this.submitButton().isDisabled().catch(() => false);
+        const isSubmitDisabled = await this.submitButtonLocator.isDisabled();
         if (isSubmitDisabled) {
           // Button is disabled, might be in loading state - wait a bit more
           await this.wait(2000);
@@ -698,18 +781,19 @@ export class ApplicantsPage extends BasePage {
           // Continue to check field values
         }
         
-        // Handle duplicate email error - retry with unique email
+        // Handle duplicate email/name error - retry with unique email and name
         if (hasDuplicateEmailError && attempt < maxRetries) {
-          console.log(`Duplicate email detected (attempt ${attempt + 1}/${maxRetries + 1}). Modifying email to make it unique...`);
+          console.log(`Duplicate applicant detected (attempt ${attempt + 1}/${maxRetries + 1}). Modifying email and name to make them unique...`);
           try {
             const uniqueEmail = await this.makeEmailUnique();
-            console.log(`Email modified to: ${uniqueEmail}. Retrying submission...`);
+            const uniqueName = await this.makeNameUnique();
+            console.log(`Email modified to: ${uniqueEmail}, Name modified to: ${uniqueName}. Retrying submission...`);
             attempt++;
             await this.wait(1000);
-            continue; // Retry submission with new email
-          } catch (emailError) {
-            // If we can't modify email, throw the duplicate error
-            throw new Error(`DUPLICATE EMAIL ERROR: The email address already exists in the system. Error details: ${errorTexts.join(', ')}. Failed to modify email: ${emailError instanceof Error ? emailError.message : 'Unknown error'}`);
+            continue; // Retry submission with new email and name
+          } catch (modifyError) {
+            // If we can't modify email/name, throw the duplicate error
+            throw new Error(`DUPLICATE APPLICANT ERROR: The applicant already exists in the system. Error details: ${errorTexts.join(', ')}. Failed to modify email/name: ${modifyError instanceof Error ? modifyError.message : 'Unknown error'}`);
           }
         }
         
@@ -760,10 +844,11 @@ export class ApplicantsPage extends BasePage {
       }
       
       // Wait for cancel button to be visible and enabled
-      await expect(this.cancelButton()).toBeVisible({ timeout: 10000 });
-      await expect(this.cancelButton()).toBeEnabled({ timeout: 10000 });
+      await this.cancelButtonLocator.expectVisible(10000);
+      const cancelLocator = await this.cancelButtonLocator.getLocator();
+      await expect(cancelLocator).toBeEnabled({ timeout: 10000 });
       
-      await this.cancelButton().click();
+      await this.cancelButtonLocator.click();
       await this.wait(500);
     }
   }
@@ -797,7 +882,7 @@ export class ApplicantsPage extends BasePage {
     // Select role (randomly if not provided or not found) and get the selected role
     const selectedRole = await this.selectRole(applicantData.role);
     
-    // Wait for email to be auto-filled from resume, then make it unique to avoid duplicates
+    // Wait for email and name to be auto-filled from resume, then make them unique to avoid duplicates
     await this.wait(1000);
     try {
       // Check if email is already filled from resume
@@ -807,9 +892,16 @@ export class ApplicantsPage extends BasePage {
         const uniqueEmail = await this.makeEmailUnique();
         console.log(`Email modified to avoid duplicates: ${uniqueEmail}`);
       }
+      
+      // Also make name unique to avoid duplicates
+      const currentName = await this.fullNameInput().inputValue().catch(() => '');
+      if (currentName && currentName.trim() !== '') {
+        const uniqueName = await this.makeNameUnique();
+        console.log(`Name modified to avoid duplicates: ${uniqueName}`);
+      }
     } catch (error) {
-      // If we can't modify email, continue - it might work anyway
-      console.log('Could not modify email for uniqueness, continuing...');
+      // If we can't modify email/name, continue - it might work anyway
+      console.log('Could not modify email/name for uniqueness, continuing...');
     }
     
     // Fill phone - ensure it's not empty

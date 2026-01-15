@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures/test-fixtures';
-import { TestDataGenerator } from '../../utils/test-data-generator';
+import { TestDataGenerator } from '../../utils/data/test-data-generator';
 import { LoginPage } from '../../pages/login-page';
 import { DashboardPage } from '../../pages/dashboard-page';
 import { JobPostingPage } from '../../pages/job-posting-page';
@@ -77,8 +77,11 @@ test.describe('Job Posting - Applicants Integration Tests', () => {
         console.log(`✓ Step 2a: First applicant added (using fallback role)`);
       }
 
-      // Add second applicant
-      await applicantsPage.wait(1000);
+      // Wait for first applicant dialog to close before adding second
+      const dialog = page.getByRole('dialog', { name: /Add New Applicant/i });
+      await expect(dialog).not.toBeVisible({ timeout: 5000 }).catch(() => {
+        // Dialog might already be closed, continue
+      });
       const applicant2Data = TestDataGenerator.generateApplicantData({
         resumePath: 'test-resources/Naukri_KaranKhosla[4y_6m].pdf',
         role: applicant1Data.role // Use same role as first applicant
@@ -103,7 +106,11 @@ test.describe('Job Posting - Applicants Integration Tests', () => {
         });
         await jobPostingPage.createJobPosting(jobData);
         roles.push(jobData.title);
-        await jobPostingPage.wait(1000);
+        // Wait for job posting dialog to close
+        const dialog = page.getByRole('dialog', { name: /Add New Job Posting/i });
+        await expect(dialog).not.toBeVisible({ timeout: 5000 }).catch(() => {
+          // Dialog might already be closed, continue
+        });
         console.log(`✓ Created job posting for ${dept} department: "${jobData.title}"`);
       }
 
@@ -125,7 +132,11 @@ test.describe('Job Posting - Applicants Integration Tests', () => {
           role: knownRole
         });
         await applicantsPage.addApplicant(applicantData);
-        await applicantsPage.wait(1000);
+        // Wait for applicant dialog to close before next addition
+        const dialog = page.getByRole('dialog', { name: /Add New Applicant/i });
+        await expect(dialog).not.toBeVisible({ timeout: 5000 }).catch(() => {
+          // Dialog might already be closed, continue
+        });
         console.log(`✓ Added applicant ${i + 1} for role "${knownRole}"`);
       }
 
@@ -175,7 +186,11 @@ test.describe('Job Posting - Applicants Integration Tests', () => {
           experienceLevel: exp.level
         });
         await jobPostingPage.createJobPosting(jobData);
-        await jobPostingPage.wait(1000);
+        // Wait for job posting dialog to close
+        const dialog = page.getByRole('dialog', { name: /Add New Job Posting/i });
+        await expect(dialog).not.toBeVisible({ timeout: 5000 }).catch(() => {
+          // Dialog might already be closed, continue
+        });
         console.log(`✓ Created job posting for ${exp.level}`);
       }
 
@@ -195,7 +210,11 @@ test.describe('Job Posting - Applicants Integration Tests', () => {
           experienceMonths: experienceLevels[i].months
         });
         await applicantsPage.addApplicant(applicantData);
-        await applicantsPage.wait(1000);
+        // Wait for applicant dialog to close before next addition
+        const dialog = page.getByRole('dialog', { name: /Add New Applicant/i });
+        await expect(dialog).not.toBeVisible({ timeout: 5000 }).catch(() => {
+          // Dialog might already be closed, continue
+        });
         console.log(`✓ Added applicant with ${experienceLevels[i].experience} years ${experienceLevels[i].months} months experience`);
       }
 
@@ -215,7 +234,11 @@ test.describe('Job Posting - Applicants Integration Tests', () => {
           location: location
         });
         await jobPostingPage.createJobPosting(jobData);
-        await jobPostingPage.wait(1000);
+        // Wait for job posting dialog to close
+        const dialog = page.getByRole('dialog', { name: /Add New Job Posting/i });
+        await expect(dialog).not.toBeVisible({ timeout: 5000 }).catch(() => {
+          // Dialog might already be closed, continue
+        });
         console.log(`✓ Created job posting with location: ${location}`);
       }
 
@@ -233,7 +256,11 @@ test.describe('Job Posting - Applicants Integration Tests', () => {
           role: 'Full Stack Developer'
         });
         await applicantsPage.addApplicant(applicantData);
-        await applicantsPage.wait(1000);
+        // Wait for applicant dialog to close before next addition
+        const dialog = page.getByRole('dialog', { name: /Add New Applicant/i });
+        await expect(dialog).not.toBeVisible({ timeout: 5000 }).catch(() => {
+          // Dialog might already be closed, continue
+        });
       }
 
       console.log('✓ TC-INT05: Job postings with locations and applicants added successfully');
@@ -334,7 +361,11 @@ test.describe('Job Posting - Applicants Integration Tests', () => {
           role: 'Full Stack Developer'
         });
         await applicantsPage.addApplicant(applicantData);
-        await applicantsPage.wait(1000);
+        // Wait for applicant dialog to close before next addition
+        const dialog = page.getByRole('dialog', { name: /Add New Applicant/i });
+        await expect(dialog).not.toBeVisible({ timeout: 5000 }).catch(() => {
+          // Dialog might already be closed, continue
+        });
         console.log(`✓ Added applicant ${i + 1}`);
       }
 

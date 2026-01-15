@@ -2,8 +2,9 @@ import { test, expect } from '@playwright/test';
 import { LoginPage } from '../../pages/login-page';
 import { DashboardPage } from '../../pages/dashboard-page';
 import { JobPostingPage } from '../../pages/job-posting-page';
-import { TestDataGenerator } from '../../utils/test-data-generator';
+import { TestDataGenerator } from '../../utils/data/test-data-generator';
 import { testConfig } from '../../config/test-config';
+import { generateUniqueId } from '../../utils/data/date-name-utils';
 
 /**
  * Job Posting Regression Test Suite
@@ -25,7 +26,7 @@ const filteredProfiles = profileFilter
 
 // Run tests for each profile
 for (const profile of filteredProfiles) {
-  test.describe(`Job Posting Regression Tests - ${profile.name}`, () => {
+  test.describe(`Job Posting Regression Tests @Regression - ${profile.name}`, () => {
     
     // Configure timeout: 4x the default (480 seconds = 8 minutes)
     test.describe.configure({ timeout: 480 * 1000 });
@@ -47,8 +48,14 @@ for (const profile of filteredProfiles) {
     });
 
     test.afterEach(async () => {
-      if (dashboardPage) {
-        await dashboardPage.logout();
+      // Logout after each test case (even if test failed)
+      try {
+        if (dashboardPage) {
+          await dashboardPage.logout();
+        }
+      } catch (error) {
+        // Log error but don't fail - logout might fail if page state is unexpected
+        console.log(`Logout in afterEach failed: ${error}`);
       }
     });
   
@@ -119,6 +126,9 @@ for (const profile of filteredProfiles) {
         await jobPostingPage.selectExperienceLevel('Mid-Level (3-5 years)');
         await jobPostingPage.selectEmploymentType('Full-Time');
         await jobPostingPage.fillOpenPositions('3');
+        await jobPostingPage.fillOpenPositions('3');
+        await jobPostingPage.fillExpectedClosingDate(TestDataGenerator.generateExpectedClosingDate());
+        await jobPostingPage.selectAssignedToHr(TestDataGenerator.generateAssignedToHr());
         await jobPostingPage.clickContinue();
         await jobPostingPage.clickComplexButton();
         await jobPostingPage.fillRoleSummary('This is a test role summary for draft saving.');
@@ -153,6 +163,9 @@ for (const profile of filteredProfiles) {
         await jobPostingPage.selectExperienceLevel('Senior (5-7 years)');
         await jobPostingPage.selectEmploymentType('Full-Time');
         await jobPostingPage.fillOpenPositions('2');
+        await jobPostingPage.fillOpenPositions('2');
+        await jobPostingPage.fillExpectedClosingDate(TestDataGenerator.generateExpectedClosingDate());
+        await jobPostingPage.selectAssignedToHr(TestDataGenerator.generateAssignedToHr());
         await jobPostingPage.clickContinue();
         await jobPostingPage.clickAIPoweredButton();
         await jobPostingPage.addCustomLocation(customLocation);
@@ -171,6 +184,9 @@ for (const profile of filteredProfiles) {
         await jobPostingPage.selectExperienceLevel('Entry Level (0-1 year)');
         await jobPostingPage.selectEmploymentType('Full-Time');
         await jobPostingPage.fillOpenPositions('5');
+        await jobPostingPage.fillOpenPositions('5');
+        await jobPostingPage.fillExpectedClosingDate(TestDataGenerator.generateExpectedClosingDate());
+        await jobPostingPage.selectAssignedToHr(TestDataGenerator.generateAssignedToHr());
         await jobPostingPage.clickContinue();
         await jobPostingPage.clickAIPoweredButton();
         await jobPostingPage.addCustomLocation('Hybrid');
@@ -196,6 +212,9 @@ for (const profile of filteredProfiles) {
         await jobPostingPage.selectExperienceLevel('Lead (7-10 years)');
         await jobPostingPage.selectEmploymentType('Full-Time');
         await jobPostingPage.fillOpenPositions('2');
+        await jobPostingPage.fillOpenPositions('2');
+        await jobPostingPage.fillExpectedClosingDate(TestDataGenerator.generateExpectedClosingDate());
+        await jobPostingPage.selectAssignedToHr(TestDataGenerator.generateAssignedToHr());
         await jobPostingPage.clickContinue();
         await jobPostingPage.clickDocumentUploadExtract();
         await jobPostingPage.uploadDocument('test-resources/Job Title_ Salesforce Developer II.pdf');
@@ -282,6 +301,11 @@ for (const profile of filteredProfiles) {
         await expect(dialog.getByRole('combobox').nth(0)).toBeVisible(); // Department
         await expect(dialog.getByRole('combobox').nth(1)).toBeVisible(); // Experience
         await expect(dialog.getByRole('combobox').nth(2)).toBeVisible(); // Employment Type
+        // Verify new fields
+        await expect(dialog.getByLabel('Expected Closing Date')).toBeVisible();
+        // "Assigned To (HR)" is not an accessible label for the combobox in this UI.
+        // Step 1 combobox order: Dept[0], Exp[1], EmpType[2], AssignedTo[3].
+        await expect(dialog.getByRole('combobox').nth(3)).toBeVisible();
         await expect(dialog.getByRole('button', { name: 'Continue' })).toBeVisible();
 
         console.log('✓ TC-JP16: All Step 1 UI elements verified');
@@ -295,6 +319,9 @@ for (const profile of filteredProfiles) {
         await jobPostingPage.selectExperienceLevel('Mid-Level (3-5 years)');
         await jobPostingPage.selectEmploymentType('Full-Time');
         await jobPostingPage.fillOpenPositions('1');
+        await jobPostingPage.fillOpenPositions('1');
+        await jobPostingPage.fillExpectedClosingDate(TestDataGenerator.generateExpectedClosingDate());
+        await jobPostingPage.selectAssignedToHr(TestDataGenerator.generateAssignedToHr());
         await jobPostingPage.clickContinue();
 
         const dialog = page.getByRole('dialog', { name: 'Add New Job Posting' });
@@ -315,7 +342,10 @@ for (const profile of filteredProfiles) {
         await jobPostingPage.selectDepartment('Engineering');
         await jobPostingPage.selectExperienceLevel('Junior (1-3 years)');
         await jobPostingPage.selectEmploymentType('Full-Time');
+        await jobPostingPage.selectEmploymentType('Full-Time');
         await jobPostingPage.fillOpenPositions('1');
+        await jobPostingPage.fillExpectedClosingDate(TestDataGenerator.generateExpectedClosingDate());
+        await jobPostingPage.selectAssignedToHr(TestDataGenerator.generateAssignedToHr());
 
         // Verify Continue button works
         await jobPostingPage.clickContinue();
@@ -408,6 +438,9 @@ for (const profile of filteredProfiles) {
         await jobPostingPage.selectExperienceLevel('Mid-Level (3-5 years)');
         await jobPostingPage.selectEmploymentType('Full-Time');
         await jobPostingPage.fillOpenPositions('1');
+        await jobPostingPage.fillOpenPositions('1');
+        await jobPostingPage.fillExpectedClosingDate(TestDataGenerator.generateExpectedClosingDate());
+        await jobPostingPage.selectAssignedToHr(TestDataGenerator.generateAssignedToHr());
         await jobPostingPage.clickContinue();
         await jobPostingPage.clickComplexButton();
         await jobPostingPage.fillRoleSummary('Test role summary');
@@ -502,6 +535,9 @@ for (const profile of filteredProfiles) {
         await jobPostingPage.selectExperienceLevel(jobData.experienceLevel);
         await jobPostingPage.selectEmploymentType(jobData.employmentType);
         await jobPostingPage.fillOpenPositions(jobData.openPositions);
+        // Step 1 requires these fields for the Continue button to enable
+        await jobPostingPage.fillExpectedClosingDate(jobData.expectedClosingDate);
+        await jobPostingPage.selectAssignedToHr(jobData.assignedToHr);
         await jobPostingPage.clickContinue();
         await jobPostingPage.clickComplexButton();
         await jobPostingPage.fillRoleSummary(jobData.roleSummary);
@@ -678,7 +714,7 @@ for (const profile of filteredProfiles) {
       });
 
       test('TC-JP33: Create job posting with numeric-only title', async () => {
-        const jobTitle = `12345_${Date.now()}`;
+        const jobTitle = `12345_${generateUniqueId(8)}`;
         const jobData = TestDataGenerator.generateJobPostingData({
           title: jobTitle,
           department: 'Engineering',
@@ -692,7 +728,7 @@ for (const profile of filteredProfiles) {
       });
 
       test('TC-JP34: Create job posting with unicode characters in title', async () => {
-        const jobTitle = `Développeur Full Stack_${Date.now()}`;
+        const jobTitle = `Développeur Full Stack_${generateUniqueId(8)}`;
         const jobData = TestDataGenerator.generateJobPostingData({
           title: jobTitle,
           department: 'Engineering',
@@ -715,6 +751,9 @@ for (const profile of filteredProfiles) {
         await jobPostingPage.selectExperienceLevel('Mid-Level (3-5 years)');
         await jobPostingPage.selectEmploymentType('Full-Time');
         await jobPostingPage.fillOpenPositions('1');
+        await jobPostingPage.fillOpenPositions('1');
+        await jobPostingPage.fillExpectedClosingDate(TestDataGenerator.generateExpectedClosingDate());
+        await jobPostingPage.selectAssignedToHr(TestDataGenerator.generateAssignedToHr());
         await jobPostingPage.clickContinue();
         await jobPostingPage.clickComplexButton();
         await jobPostingPage.fillRoleSummary('Test role summary');
