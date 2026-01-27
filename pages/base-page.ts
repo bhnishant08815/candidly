@@ -1,7 +1,6 @@
 import { Page, Locator, expect } from '@playwright/test';
 import { testConfig } from '../config/test-config';
 import { ResilientElement } from '../utils/element-helpers/element-wrapper';
-import { SemanticLocator, SemanticContext, SemanticLocatorOptions } from '../utils/element-helpers/semantic-locator';
 
 /**
  * Base Page Object Model class
@@ -250,44 +249,5 @@ export class BasePage {
     }
   }
 
-  /**
-   * Create a semantic locator with auto-healing capabilities
-   * When the primary locator fails, the semantic context is used to find the element
-   * using alternative strategies (by role, text, label, placeholder, etc.)
-   * 
-   * @param primaryLocator The primary locator to try first
-   * @param context Semantic context describing the element's purpose
-   * @param fallbackLocators Optional explicit fallback locators
-   * @param options Optional configuration options
-   * @returns SemanticLocator instance with auto-healing capabilities
-   * 
-   * @example
-   * ```typescript
-   * const loginButton = this.createSemanticLocator(
-   *   this.page.locator('#login-btn'),
-   *   {
-   *     purpose: 'Login Button',
-   *     elementType: 'button',
-   *     textPatterns: ['Sign In', 'Login'],
-   *     ariaRole: 'button'
-   *   }
-   * );
-   * await loginButton.click();
-   * ```
-   */
-  createSemanticLocator(
-    primaryLocator: Locator,
-    context: SemanticContext,
-    fallbackLocators?: Locator[],
-    options?: SemanticLocatorOptions
-  ): SemanticLocator {
-    return new SemanticLocator(
-      this.page,
-      primaryLocator,
-      context,
-      fallbackLocators ?? [],
-      options ?? { timeout: testConfig.timeouts.default }
-    );
-  }
 }
 

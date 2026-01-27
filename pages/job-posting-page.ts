@@ -1,184 +1,67 @@
 import { Page, expect, Locator } from '@playwright/test';
 import { BasePage } from './base-page';
-import { SemanticLocator } from '../utils/element-helpers/semantic-locator';
 
 /**
  * Job Posting Page Object Model
  * Handles all job posting creation and management interactions.
- * Uses SemanticLocator for auto-healing capabilities on key elements.
  */
 export class JobPostingPage extends BasePage {
-  // ============ Semantic Locators with Auto-Healing ============
+  // ============ Locators ============
 
   /**
-   * Add New Job button with semantic context
+   * Add New Job button
    */
-  private get addNewJobButtonLocator(): SemanticLocator {
-    return this.createSemanticLocator(
-      this.page.getByText('Add New Job', { exact: true }),
-      {
-        purpose: 'Add New Job Button',
-        elementType: 'button',
-        ariaRole: 'button',
-        textPatterns: ['Add New Job', 'Create Job', 'New Job Posting'],
-        labelPatterns: ['Add New Job', 'Create Job'],
-        nearbyContext: 'job postings page header'
-      },
-      [
-        this.page.getByRole('button', { name: /Add New Job/i }),
-        this.page.locator('button').filter({ hasText: /Add.*Job/i })
-      ]
-    );
+  private get addNewJobButton(): Locator {
+    return this.page.getByText('Add New Job', { exact: true });
   }
 
   /**
-   * Job Title input with semantic context
+   * Job Title input
    */
-  private get jobTitleInputLocator(): SemanticLocator {
-    return this.createSemanticLocator(
-      this.page.locator('input#job_title'),
-      {
-        purpose: 'Job Title Input',
-        elementType: 'input',
-        ariaRole: 'textbox',
-        textPatterns: ['Job Title', 'Title'],
-        labelPatterns: ['Job Title', 'Title'],
-        placeholderPatterns: ['job title', 'enter title'],
-        formContext: 'job posting form'
-      },
-      [
-        this.page.getByRole('textbox', { name: /Job Title/i }),
-        this.page.getByLabel(/Job Title/i)
-      ]
-    );
+  private get jobTitleInput(): Locator {
+    return this.page.locator('input#job_title');
   }
 
   /**
-   * Continue button with semantic context
+   * Continue button
    */
-  private get continueButtonLocator(): SemanticLocator {
-    return this.createSemanticLocator(
-      this.page.getByRole('button', { name: 'Continue' }),
-      {
-        purpose: 'Continue Button',
-        elementType: 'button',
-        ariaRole: 'button',
-        textPatterns: ['Continue', 'Next', 'Proceed'],
-        labelPatterns: ['Continue', 'Next Step'],
-        formContext: 'job posting form'
-      },
-      [
-        this.page.getByText('Continue', { exact: true }),
-        this.page.locator('button').filter({ hasText: /Continue/i })
-      ]
-    );
+  private get continueButton(): Locator {
+    return this.page.getByRole('button', { name: 'Continue' });
   }
 
   /**
-   * Review button with semantic context
+   * Review button
    */
-  private get reviewButtonLocator(): SemanticLocator {
-    return this.createSemanticLocator(
-      this.page.getByRole('button', { name: 'Review' }),
-      {
-        purpose: 'Review Button',
-        elementType: 'button',
-        ariaRole: 'button',
-        textPatterns: ['Review', 'Preview'],
-        labelPatterns: ['Review', 'Preview Job'],
-        formContext: 'job posting form'
-      },
-      [
-        this.page.getByText('Review', { exact: true }),
-        this.page.locator('button').filter({ hasText: /Review/i })
-      ]
-    );
+  private get reviewButton(): Locator {
+    return this.page.getByRole('button', { name: 'Review' });
   }
 
   /**
-   * Save as Draft button with semantic context
+   * Save as Draft button
    */
-  private get saveAsDraftButtonLocator(): SemanticLocator {
-    return this.createSemanticLocator(
-      this.page.getByText(/Save as Draft/i),
-      {
-        purpose: 'Save as Draft Button',
-        elementType: 'button',
-        ariaRole: 'button',
-        textPatterns: ['Save as Draft', 'Save Draft', 'Draft'],
-        labelPatterns: ['Save as Draft', 'Save Draft'],
-        classPatterns: ['draft', 'save'],
-        formContext: 'job posting form'
-      },
-      [
-        this.page.getByRole('button', { name: /Save.*Draft/i }),
-        this.page.locator('button').filter({ hasText: /Draft/i })
-      ]
-    );
+  private get saveAsDraftButton(): Locator {
+    return this.page.getByText(/Save as Draft/i);
   }
 
   /**
-   * AI-Powered button with semantic context
+   * AI-Powered button
    */
-  private get aiPoweredButtonLocator(): SemanticLocator {
-    return this.createSemanticLocator(
-      this.page.getByRole('button', { name: /AI-Powered/i }),
-      {
-        purpose: 'AI-Powered Job Creation Button',
-        elementType: 'button',
-        ariaRole: 'button',
-        textPatterns: ['AI-Powered', 'AI', 'Generate with AI'],
-        labelPatterns: ['AI-Powered', 'AI Generate'],
-        nearbyContext: 'job posting step 2'
-      },
-      [
-        this.page.getByText(/AI-Powered/i),
-        this.page.locator('button').filter({ hasText: /AI/i })
-      ]
-    );
+  private get aiPoweredButton(): Locator {
+    return this.page.getByRole('button', { name: /AI-Powered/i });
   }
 
   /**
-   * Document Upload button with semantic context
+   * Document Upload button
    */
-  private get documentUploadButtonLocator(): SemanticLocator {
-    return this.createSemanticLocator(
-      this.page.getByRole('button', { name: /Document Upload/i }),
-      {
-        purpose: 'Document Upload Button',
-        elementType: 'button',
-        ariaRole: 'button',
-        textPatterns: ['Document Upload', 'Upload Document', 'Upload'],
-        labelPatterns: ['Document Upload', 'Upload'],
-        nearbyContext: 'job posting step 2'
-      },
-      [
-        this.page.getByText(/Document Upload/i),
-        this.page.locator('button').filter({ hasText: /Upload/i })
-      ]
-    );
+  private get documentUploadButton(): Locator {
+    return this.page.getByRole('button', { name: /Document Upload/i });
   }
 
   /**
-   * Role Summary input with semantic context
+   * Role Summary input
    */
-  private get roleSummaryInputLocator(): SemanticLocator {
-    return this.createSemanticLocator(
-      this.page.getByRole('textbox', { name: 'Role Summary *' }),
-      {
-        purpose: 'Role Summary Input',
-        elementType: 'input',
-        ariaRole: 'textbox',
-        textPatterns: ['Role Summary', 'Summary', 'Description'],
-        labelPatterns: ['Role Summary', 'Summary'],
-        placeholderPatterns: ['role summary', 'summary'],
-        formContext: 'job posting form step 2'
-      },
-      [
-        this.page.getByLabel(/Role Summary/i),
-        this.page.locator('textarea').first()
-      ]
-    );
+  private get roleSummaryInput(): Locator {
+    return this.page.getByRole('textbox', { name: 'Role Summary *' });
   }
 
   // Legacy locators for backward compatibility (still used in some methods)
@@ -209,9 +92,8 @@ export class JobPostingPage extends BasePage {
    * Click on Add New Job button
    */
   async clickAddNewJob(): Promise<void> {
-    // Use semantic locator with auto-healing
-    await this.addNewJobButtonLocator.expectVisible(10000);
-    await this.addNewJobButtonLocator.click();
+    await expect(this.addNewJobButton).toBeVisible({ timeout: 10000 });
+    await this.addNewJobButton.click();
     // Wait for the dialog to appear
     const dialog = this.page.getByRole('dialog', { name: 'Add New Job Posting' });
     await expect(dialog).toBeVisible({ timeout: 10000 });
@@ -223,9 +105,8 @@ export class JobPostingPage extends BasePage {
    * @param title Job title
    */
   async fillJobTitle(title: string): Promise<void> {
-    // Use semantic locator with auto-healing
-    await this.jobTitleInputLocator.expectVisible();
-    await this.jobTitleInputLocator.fill(title);
+    await expect(this.jobTitleInput).toBeVisible();
+    await this.jobTitleInput.fill(title);
   }
 
   /**
@@ -381,11 +262,10 @@ export class JobPostingPage extends BasePage {
   async clickContinue(): Promise<void> {
     const dialog = this.page.getByRole('dialog', { name: 'Add New Job Posting' });
     
-    // Use semantic locator with auto-healing
-    const isButtonDisabled = await this.continueButtonLocator.isDisabled();
+    const isButtonDisabled = await this.continueButton.isDisabled();
     
     // Verify button is visible. If it's disabled, the form is not valid yet.
-    await this.continueButtonLocator.expectVisible();
+    await expect(this.continueButton).toBeVisible();
 
     // Common reason in this UI: "Assigned To (HR)" is required unless "General Hiring" is checked.
     // Make the test resilient by satisfying this requirement when the checkbox is present.
@@ -439,8 +319,7 @@ export class JobPostingPage extends BasePage {
     }
 
     // Wait for button to be enabled after form fixes
-    const buttonLocator = await this.continueButtonLocator.getLocator();
-    await expect(buttonLocator).toBeEnabled({ timeout: 10000 });
+    await expect(this.continueButton).toBeEnabled({ timeout: 10000 });
     
     // Check for any validation errors before clicking
     const validationErrors = dialog.locator('text=/required|invalid|error/i');
@@ -450,7 +329,7 @@ export class JobPostingPage extends BasePage {
     }
     
     // Click the button and wait for it to process
-    await this.continueButtonLocator.click();
+    await this.continueButton.click();
     
     // Wait for Step 1 fields to disappear (indicates transition started)
     const jobTitleInput = dialog.getByRole('textbox', { name: 'Job Title *' });
@@ -462,9 +341,9 @@ export class JobPostingPage extends BasePage {
     
     // Wait for Step 2 to load - try multiple indicators with better strategy
     const step2Indicators = [
-      async () => await this.roleSummaryInputLocator.isVisible(),
-      async () => await this.aiPoweredButtonLocator.isVisible(),
-      async () => await this.documentUploadButtonLocator.isVisible(),
+      async () => await this.roleSummaryInput.isVisible(),
+      async () => await this.aiPoweredButton.isVisible(),
+      async () => await this.documentUploadButton.isVisible(),
       async () => {
         const field = dialog.getByRole('textbox', { name: 'Role Summary *' });
         return await field.isVisible({ timeout: 2000 }).catch(() => false);
@@ -526,13 +405,13 @@ export class JobPostingPage extends BasePage {
       // Wait for either Role Summary, AI-Powered button, or Document Upload button
       let step2Loaded = false;
       try {
-        step2Loaded = await this.roleSummaryInputLocator.isVisible();
+        step2Loaded = await this.roleSummaryInput.isVisible();
       } catch {
         try {
-          step2Loaded = await this.aiPoweredButtonLocator.isVisible();
+          step2Loaded = await this.aiPoweredButton.isVisible();
         } catch {
           try {
-            step2Loaded = await this.documentUploadButtonLocator.isVisible();
+            step2Loaded = await this.documentUploadButton.isVisible();
           } catch {
             // Step 2 not loaded yet
           }
@@ -567,9 +446,8 @@ export class JobPostingPage extends BasePage {
    * @param summary Role summary text
    */
   async fillRoleSummary(summary: string): Promise<void> {
-    // Use semantic locator with auto-healing
-    await this.roleSummaryInputLocator.expectVisible(10000);
-    await this.roleSummaryInputLocator.fill(summary);
+    await expect(this.roleSummaryInput).toBeVisible({ timeout: 10000 });
+    await this.roleSummaryInput.fill(summary);
     await this.wait(300);
   }
 
@@ -669,9 +547,8 @@ export class JobPostingPage extends BasePage {
    * Click Review button
    */
   async clickReview(): Promise<void> {
-    // Use semantic locator with auto-healing
-    await this.reviewButtonLocator.expectVisible(10000);
-    await this.reviewButtonLocator.click();
+    await expect(this.reviewButton).toBeVisible({ timeout: 10000 });
+    await this.reviewButton.click();
     await this.wait(1000);
   }
 
@@ -759,9 +636,8 @@ export class JobPostingPage extends BasePage {
    * Click on AI-Powered button to let AI create the job posting
    */
   async clickAIPoweredButton(): Promise<void> {
-    // Use semantic locator with auto-healing
-    await this.aiPoweredButtonLocator.expectVisible(10000);
-    await this.aiPoweredButtonLocator.click();
+    await expect(this.aiPoweredButton).toBeVisible({ timeout: 10000 });
+    await this.aiPoweredButton.click();
     await this.wait(1000);
   }
 
@@ -771,9 +647,8 @@ export class JobPostingPage extends BasePage {
   async saveAsDraft(): Promise<void> {
     const dialog = this.page.getByRole('dialog', { name: 'Add New Job Posting' });
     
-    // Use semantic locator with auto-healing
-    await this.saveAsDraftButtonLocator.expectVisible(10000);
-    await this.saveAsDraftButtonLocator.click();
+    await expect(this.saveAsDraftButton).toBeVisible({ timeout: 10000 });
+    await this.saveAsDraftButton.click();
     
     // Wait a bit for the response to start
     await this.wait(1000);
@@ -840,9 +715,8 @@ export class JobPostingPage extends BasePage {
    * Click on Document Upload Extract button
    */
   async clickDocumentUploadExtract(): Promise<void> {
-    // Use semantic locator with auto-healing
-    await this.documentUploadButtonLocator.expectVisible(10000);
-    await this.documentUploadButtonLocator.click();
+    await expect(this.documentUploadButton).toBeVisible({ timeout: 10000 });
+    await this.documentUploadButton.click();
     await this.wait(1000);
   }
 

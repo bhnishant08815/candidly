@@ -1,6 +1,5 @@
-import { Page, expect } from '@playwright/test';
+import { Page, expect, Locator } from '@playwright/test';
 import { BasePage } from './base-page';
-import { SemanticLocator } from '../utils/element-helpers/semantic-locator';
 
 /**
  * Interview data interface
@@ -17,69 +16,29 @@ export interface InterviewData {
 /**
  * Interview Page Object Model
  * Handles interview scheduling and management interactions.
- * Uses SemanticLocator for auto-healing capabilities on key elements.
  */
 export class InterviewPage extends BasePage {
-  // ============ Semantic Locators with Auto-Healing ============
+  // ============ Locators ============
 
   /**
-   * Interviews navigation button with semantic context
+   * Interviews navigation button
    */
-  private get interviewsButtonLocator(): SemanticLocator {
-    return this.createSemanticLocator(
-      this.page.getByRole('button', { name: 'Interviews' }),
-      {
-        purpose: 'Interviews Navigation Button',
-        elementType: 'button',
-        ariaRole: 'button',
-        textPatterns: ['Interviews', 'Interview'],
-        titlePatterns: ['Interviews'],
-        labelPatterns: ['Interviews'],
-        nearbyContext: 'sidebar navigation'
-      },
-      [
-        this.page.locator('button[title="Interviews"]'),
-        this.page.locator('button').filter({ hasText: /Interview/i })
-      ]
-    );
+  private get interviewsButtonLocator(): Locator {
+    return this.page.getByRole('button', { name: 'Interviews' });
   }
 
   /**
-   * Schedule Interview button with semantic context
+   * Schedule Interview button
    */
-  private get scheduleInterviewButtonLocator(): SemanticLocator {
-    return this.createSemanticLocator(
-      this.page.getByRole('button', { name: 'Schedule Interview' }),
-      {
-        purpose: 'Schedule Interview Button',
-        elementType: 'button',
-        ariaRole: 'button',
-        textPatterns: ['Schedule Interview', 'Schedule', 'New Interview'],
-        labelPatterns: ['Schedule Interview', 'New Interview'],
-        nearbyContext: 'interviews page header'
-      },
-      [
-        this.page.getByText('Schedule Interview', { exact: true }),
-        this.page.locator('button').filter({ hasText: /Schedule.*Interview/i })
-      ]
-    );
+  private get scheduleInterviewButtonLocator(): Locator {
+    return this.page.getByRole('button', { name: 'Schedule Interview' });
   }
 
   /**
-   * Schedule submit button with semantic context
+   * Schedule submit button
    */
-  private get scheduleButtonLocator(): SemanticLocator {
-    return this.createSemanticLocator(
-      this.page.getByRole('button', { name: 'Schedule', exact: true }),
-      {
-        purpose: 'Schedule Submit Button',
-        elementType: 'button',
-        ariaRole: 'button',
-        textPatterns: ['Schedule', 'Submit', 'Confirm'],
-        labelPatterns: ['Schedule', 'Submit'],
-        formContext: 'schedule interview dialog'
-      }
-    );
+  private get scheduleButtonLocator(): Locator {
+    return this.page.getByRole('button', { name: 'Schedule', exact: true });
   }
 
   // Legacy locators (still used in some methods)
@@ -146,14 +105,13 @@ export class InterviewPage extends BasePage {
     await this.wait(300);
     
     // Wait for the Interviews button to be visible (might be in navigation)
-    await this.interviewsButtonLocator.expectVisible(10000);
-    const interviewsBtn = await this.interviewsButtonLocator.getLocator();
-    await expect(interviewsBtn).toBeEnabled({ timeout: 5000 });
+    await expect(this.interviewsButtonLocator).toBeVisible({ timeout: 10000 });
+    await expect(this.interviewsButtonLocator).toBeEnabled({ timeout: 5000 });
     
     await this.interviewsButtonLocator.click();
     
     // Wait for the interviews page to load by checking for the schedule button
-    await this.scheduleInterviewButtonLocator.expectVisible(15000);
+    await expect(this.scheduleInterviewButtonLocator).toBeVisible({ timeout: 15000 });
     await this.wait(1000); // Additional wait for page stability
   }
 
@@ -187,9 +145,8 @@ export class InterviewPage extends BasePage {
     }
 
     // Wait for the schedule button to be visible and enabled with increased timeout
-    await this.scheduleInterviewButtonLocator.expectVisible(15000);
-    const scheduleBtn = await this.scheduleInterviewButtonLocator.getLocator();
-    await expect(scheduleBtn).toBeEnabled({ timeout: 5000 });
+    await expect(this.scheduleInterviewButtonLocator).toBeVisible({ timeout: 15000 });
+    await expect(this.scheduleInterviewButtonLocator).toBeEnabled({ timeout: 5000 });
     
     // Small wait to ensure button is fully interactive
     await this.wait(300);

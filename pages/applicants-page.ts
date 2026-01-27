@@ -1,69 +1,33 @@
-import { Page, expect } from '@playwright/test';
+import { Page, expect, Locator } from '@playwright/test';
 import { BasePage } from './base-page';
 import { generateUniqueId, generateAlphabeticUniqueId } from '../utils/data/date-name-utils';
-import { SemanticLocator } from '../utils/element-helpers/semantic-locator';
 
 /**
  * Applicants Page Object Model
  * Handles all applicant-related interactions.
- * Uses SemanticLocator for auto-healing capabilities on key elements.
  */
 export class ApplicantsPage extends BasePage {
-  // ============ Semantic Locators with Auto-Healing ============
+  // ============ Locators ============
 
   /**
-   * Add Applicant button with semantic context
+   * Add Applicant button
    */
-  private get addApplicantButtonLocator(): SemanticLocator {
-    return this.createSemanticLocator(
-      this.page.getByRole('button', { name: 'Add Applicant' }),
-      {
-        purpose: 'Add Applicant Button',
-        elementType: 'button',
-        ariaRole: 'button',
-        textPatterns: ['Add Applicant', 'New Applicant', 'Add Candidate'],
-        labelPatterns: ['Add Applicant', 'New Applicant'],
-        nearbyContext: 'applicants page header'
-      },
-      [
-        this.page.getByText('Add Applicant', { exact: true }),
-        this.page.locator('button').filter({ hasText: /Add.*Applicant/i })
-      ]
-    );
+  private get addApplicantButtonLocator(): Locator {
+    return this.page.getByRole('button', { name: 'Add Applicant' });
   }
 
   /**
-   * Submit button with semantic context
+   * Submit button
    */
-  private get submitButtonLocator(): SemanticLocator {
-    return this.createSemanticLocator(
-      this.applicantDialog().getByRole('button', { name: 'Add Applicant' }),
-      {
-        purpose: 'Submit Applicant Form Button',
-        elementType: 'button',
-        ariaRole: 'button',
-        textPatterns: ['Add Applicant', 'Submit', 'Save'],
-        labelPatterns: ['Add Applicant', 'Submit'],
-        formContext: 'add applicant dialog'
-      }
-    );
+  private get submitButtonLocator(): Locator {
+    return this.applicantDialog().getByRole('button', { name: 'Add Applicant' });
   }
 
   /**
-   * Cancel button with semantic context
+   * Cancel button
    */
-  private get cancelButtonLocator(): SemanticLocator {
-    return this.createSemanticLocator(
-      this.applicantDialog().getByRole('button', { name: 'Cancel' }),
-      {
-        purpose: 'Cancel Applicant Form Button',
-        elementType: 'button',
-        ariaRole: 'button',
-        textPatterns: ['Cancel', 'Close', 'Discard'],
-        labelPatterns: ['Cancel', 'Close'],
-        formContext: 'add applicant dialog'
-      }
-    );
+  private get cancelButtonLocator(): Locator {
+    return this.applicantDialog().getByRole('button', { name: 'Cancel' });
   }
 
   // Legacy locators for form fields (still using traditional approach for complex forms)
@@ -685,8 +649,7 @@ export class ApplicantsPage extends BasePage {
       }
       
       // Wait for submit button to be enabled
-      const submitLocator = await this.submitButtonLocator.getLocator();
-      await expect(submitLocator).toBeEnabled({ timeout: 20000 });
+      await expect(this.submitButtonLocator).toBeEnabled({ timeout: 20000 });
       
       // Wait for any loading states to complete before clicking
       await this.wait(500);
@@ -844,9 +807,8 @@ export class ApplicantsPage extends BasePage {
       }
       
       // Wait for cancel button to be visible and enabled
-      await this.cancelButtonLocator.expectVisible(10000);
-      const cancelLocator = await this.cancelButtonLocator.getLocator();
-      await expect(cancelLocator).toBeEnabled({ timeout: 10000 });
+      await expect(this.cancelButtonLocator).toBeVisible({ timeout: 10000 });
+      await expect(this.cancelButtonLocator).toBeEnabled({ timeout: 10000 });
       
       await this.cancelButtonLocator.click();
       await this.wait(500);

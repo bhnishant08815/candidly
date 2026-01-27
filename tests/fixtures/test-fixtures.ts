@@ -7,6 +7,7 @@ import { JobPostingPage } from '../../pages/job-posting-page';
 import { ApplicantsPage } from '../../pages/applicants-page';
 import { InterviewPage } from '../../pages/interview-page';
 import { testConfig } from '../../config/test-config';
+import { performTestCleanup } from '../../utils/cleanup/test-cleanup';
 
 // Cache for auth state verification results (per test run)
 const authStateCache = new Map<string, { isValid: boolean; timestamp: number }>();
@@ -100,6 +101,9 @@ export const test = base.extend<TestFixtures>({
     // Use the authenticated page
     await use(page);
     
+    // Cleanup: Logout via API and dismiss any open dialogs
+    await performTestCleanup(page, { logoutViaApi: true, verbose: false });
+    
     // Save state before closing
     await context.storageState({ path: AUTH_STATE_PATH });
     
@@ -173,6 +177,9 @@ export const test = base.extend<TestFixtures>({
     }
     
     await use(page);
+    
+    // Cleanup: Logout via API and dismiss any open dialogs
+    await performTestCleanup(page, { logoutViaApi: true, verbose: false });
     
     await context.storageState({ path: AUTH_STATE_HR_PATH });
     

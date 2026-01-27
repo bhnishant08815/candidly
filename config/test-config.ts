@@ -5,6 +5,13 @@
 
 type Environment = 'staging' | 'production' | 'local';
 
+export interface UserProfile {
+  email: string;
+  password: string;
+  userName: string;
+  initials?: string;
+}
+
 interface EnvironmentConfig {
   baseURL: string;
   timeouts: {
@@ -61,17 +68,40 @@ export const testConfig = {
   baseURL: process.env.BASE_URL || envConfig.baseURL,
   timeouts: envConfig.timeouts,
   retries: envConfig.retries,
-  // Admin Profile credentials
+  
+  // User profiles for multi-profile testing
+  profiles: {
+    admin: {
+      email: process.env.TEST_EMAIL || 'bh.nishant@concret.io',
+      password: process.env.TEST_PASSWORD || 'Candidly@2025',
+      userName: process.env.TEST_USER_NAME || 'Nishant Bhardwaj',
+      initials: 'NB'
+    } as UserProfile,
+    hr: {
+      email: process.env.HR_EMAIL || 'nishant08815@gmail.com',
+      password: process.env.HR_PASSWORD || 'Demo@123',
+      userName: process.env.HR_USER_NAME || 'HR User',
+      initials: 'HU'
+    } as UserProfile
+  },
+  
+  // Backward compatibility: Admin Profile credentials
   credentials: {
     email: process.env.TEST_EMAIL || 'bh.nishant@concret.io',
     password: process.env.TEST_PASSWORD || 'Candidly@2025',
     userName: process.env.TEST_USER_NAME || 'Nishant Bhardwaj',
   },
-  // HR Profile credentials
+  // Backward compatibility: HR Profile credentials
   hrCredentials: {
     email: process.env.HR_EMAIL || 'nishant08815@gmail.com',
     password: process.env.HR_PASSWORD || 'Demo@123',
     userName: process.env.HR_USER_NAME || 'HR User',
+  },
+  
+  // Logout API configuration for API-based logout
+  logoutApi: {
+    url: 'https://login--staging-services--896dbbxyfm6q.code.run/api/logout',
+    method: 'GET' as const,
   },
 };
 

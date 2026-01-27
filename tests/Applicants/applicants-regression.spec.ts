@@ -4,6 +4,7 @@ import { DashboardPage } from '../../pages/dashboard-page';
 import { ApplicantsPage } from '../../pages/applicants-page';
 import { TestDataGenerator } from '../../utils/data/test-data-generator';
 import { testConfig } from '../../config/test-config';
+import { performTestCleanup } from '../../utils/cleanup/test-cleanup';
 
 /**
  * Applicants Regression Test Suite
@@ -47,14 +48,13 @@ for (const profile of filteredProfiles) {
     });
 
     test.afterEach(async () => {
-      // Logout after each test case (even if test failed)
-      try {
-        if (dashboardPage) {
-          await dashboardPage.logout();
-        }
-      } catch (error) {
-        // Log error but don't fail - logout might fail if page state is unexpected
-        console.log(`Logout in afterEach failed: ${error}`);
+      // Use standardized cleanup
+      if (authenticatedPage) {
+        await performTestCleanup(authenticatedPage, {
+          dashboardPage,
+          logoutViaApi: true,
+          verbose: false
+        });
       }
     });
   
@@ -76,7 +76,7 @@ for (const profile of filteredProfiles) {
       console.log(`✓ TC-A01: Applicant "${applicantData.role}" added successfully`);
     });
 
-    test('TC-A02: Add applicant with resume upload and verify auto-parsed data', async () => {
+    test('TC-A02: Add applicant with resume upload and verify auto-parsed data', async ({ page }) => {
       const applicantData = TestDataGenerator.generateApplicantData({
         resumePath: 'test-resources/Naukri_KaranKhosla[4y_6m].pdf',
         role: 'Full Stack Developer',
@@ -380,7 +380,7 @@ for (const profile of filteredProfiles) {
   
   test.describe('Workflow & Integration Tests', () => {
     
-    test('TC-A16: Add multiple applicants for same role', async () => {
+    test('TC-A16: Add multiple applicants for same role', async ({ page }) => {
       const role = 'Full Stack Developer';
       const resumeFiles = [
         'test-resources/Naukri_AbhiPal[5y_0m].pdf',
@@ -406,7 +406,7 @@ for (const profile of filteredProfiles) {
       console.log(`✓ TC-A16: Added 3 applicants for role "${role}" successfully`);
     });
 
-    test('TC-A17: Add applicant with different currencies (INR, USD, EUR)', async () => {
+    test('TC-A17: Add applicant with different currencies (INR, USD, EUR)', async ({ page }) => {
       const currencies = [
         { code: 'INR', current: '1000000', expected: '1200000' },
         { code: 'USD', current: '75000', expected: '95000' },

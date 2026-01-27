@@ -8,6 +8,7 @@ import { LoginPage } from '../../pages/login-page';
 import { DashboardPage } from '../../pages/dashboard-page';
 import { ApplicantsPage } from '../../pages/applicants-page';
 import { generateUniqueId } from '../../utils/data/date-name-utils';
+import { performTestCleanup } from '../../utils/cleanup/test-cleanup';
 
 /**
  * Interview Automation Test Suite
@@ -148,14 +149,12 @@ for (const profile of filteredProfiles) {
     });
 
     test.afterEach(async ({ page }) => {
-      // Logout after each test case (even if test failed)
-      try {
-        const dashboardPage = new DashboardPage(page);
-        await dashboardPage.logout();
-      } catch (error) {
-        // Log error but don't fail - logout might fail if page state is unexpected
-        console.log(`Logout in afterEach failed: ${error}`);
-      }
+      // Use standardized cleanup
+      await performTestCleanup(page, {
+        dashboardPage,
+        logoutViaApi: true,
+        verbose: false
+      });
     });
 
     // ==========================================

@@ -1,106 +1,46 @@
-import { Page, expect } from '@playwright/test';
+import { Page, expect, Locator } from '@playwright/test';
 import { BasePage } from './base-page';
-import { SemanticLocator } from '../utils/element-helpers/semantic-locator';
 
 /**
  * Login Page Object Model
  * Handles all login-related interactions with robust locators and error handling.
- * Uses SemanticLocator for auto-healing capabilities when UI changes.
  */
 export class LoginPage extends BasePage {
-  // ============ Semantic Locators with Auto-Healing ============
+  // ============ Locators ============
   
   /**
-   * Email input field with semantic context for auto-healing
+   * Email input field
    */
-  private get emailInputLocator(): SemanticLocator {
-    return this.createSemanticLocator(
-      this.page.getByRole('textbox', { name: 'Email Address' }),
-      {
-        purpose: 'Email Address Input',
-        elementType: 'input',
-        ariaRole: 'textbox',
-        textPatterns: ['email', 'Email Address'],
-        labelPatterns: ['Email', 'Email Address', 'Work Email'],
-        placeholderPatterns: ['johndoe@business.com', 'email', 'your email'],
-        attributePatterns: { 'type': 'email' },
-        formContext: 'login'
-      },
-      [this.page.locator("//input[@placeholder='johndoe@business.com']")]
-    );
+  private get emailInput(): Locator {
+    return this.page.locator('#email');
   }
 
   /**
-   * Continue button with semantic context for auto-healing
+   * Continue button
    */
-  private get continueButtonLocator(): SemanticLocator {
-    return this.createSemanticLocator(
-      this.page.getByRole('button', { name: 'Continue', exact: true }),
-      {
-        purpose: 'Continue Button',
-        elementType: 'button',
-        ariaRole: 'button',
-        textPatterns: ['Continue', 'Next', 'Proceed'],
-        labelPatterns: ['Continue'],
-        formContext: 'login'
-      },
-      [this.page.getByText('Continue', { exact: true })]
-    );
+  private get continueButton(): Locator {
+    return this.page.getByRole('button', { name: 'Continue', exact: true });
   }
 
   /**
-   * Password input field with semantic context for auto-healing
+   * Password input field
    */
-  private get passwordInputLocator(): SemanticLocator {
-    return this.createSemanticLocator(
-      this.page.getByRole('textbox', { name: 'Password' }),
-      {
-        purpose: 'Password Input',
-        elementType: 'input',
-        ariaRole: 'textbox',
-        textPatterns: ['password', 'Password'],
-        labelPatterns: ['Password', 'Enter Password'],
-        placeholderPatterns: ['password', 'enter password'],
-        attributePatterns: { 'type': 'password' },
-        formContext: 'login'
-      },
-      [this.page.locator('input[type="password"]')]
-    );
+  private get passwordInput(): Locator {
+    return this.page.getByRole('textbox', { name: 'Password' });
   }
 
   /**
-   * Sign In button with semantic context for auto-healing
+   * Sign In button
    */
-  private get signInButtonLocator(): SemanticLocator {
-    return this.createSemanticLocator(
-      this.page.getByRole('button', { name: 'Sign In' }),
-      {
-        purpose: 'Sign In Button',
-        elementType: 'button',
-        ariaRole: 'button',
-        textPatterns: ['Sign In', 'Login', 'Log In', 'Submit'],
-        labelPatterns: ['Sign In', 'Login'],
-        classPatterns: ['sign-in', 'login', 'submit'],
-        formContext: 'login'
-      },
-      [this.page.locator("//button[contains(., 'Sign In')]")]
-    );
+  private get signInButton(): Locator {
+    return this.page.getByRole('button', { name: 'Sign In' });
   }
 
   /**
-   * Sign In heading with semantic context for auto-healing
+   * Sign In heading
    */
-  private get signInHeadingLocator(): SemanticLocator {
-    return this.createSemanticLocator(
-      this.page.getByRole('heading', { name: 'Sign In' }),
-      {
-        purpose: 'Sign In Page Heading',
-        elementType: 'heading',
-        ariaRole: 'heading',
-        textPatterns: ['Sign In', 'Login', 'Welcome'],
-        formContext: 'login'
-      }
-    );
+  private get signInHeading(): Locator {
+    return this.page.getByRole('heading', { name: 'Sign In' });
   }
 
   constructor(page: Page) {
@@ -117,8 +57,8 @@ export class LoginPage extends BasePage {
     // Wait for page to load
     await this.page.waitForLoadState('domcontentloaded');
     
-    // Wait for email input to be visible using semantic locator (auto-healing enabled)
-    await this.emailInputLocator.expectVisible(10000);
+    // Wait for email input to be visible
+    await expect(this.emailInput).toBeVisible({ timeout: 10000 });
     
     // Additional wait for page stability
     await this.wait(500);
@@ -129,15 +69,14 @@ export class LoginPage extends BasePage {
    * @param email Email address to enter
    */
   async enterEmail(email: string): Promise<void> {
-    // Use semantic locator with auto-healing
-    await this.emailInputLocator.expectVisible();
-    await this.emailInputLocator.fill(email);
+    await expect(this.emailInput).toBeVisible();
+    await this.emailInput.fill(email);
     
     // Wait a moment for email to be processed
     await this.wait(500);
     
-    // Click continue button using semantic locator
-    await this.continueButtonLocator.click();
+    // Click continue button
+    await this.continueButton.click();
     
     // Wait for navigation to password page
     await this.wait(2000);
@@ -148,15 +87,15 @@ export class LoginPage extends BasePage {
    * @param password Password to enter
    */
   async enterPassword(password: string): Promise<void> {
-    // Wait for password field using semantic locator with auto-healing
-    await this.passwordInputLocator.expectVisible(10000);
-    await this.passwordInputLocator.fill(password);
+    // Wait for password field
+    await expect(this.passwordInput).toBeVisible({ timeout: 10000 });
+    await this.passwordInput.fill(password);
     
     // Wait a moment for password to be processed
     await this.wait(500);
     
-    // Click sign in button using semantic locator
-    await this.signInButtonLocator.click();
+    // Click sign in button
+    await this.signInButton.click();
   }
 
   /**
@@ -178,16 +117,16 @@ export class LoginPage extends BasePage {
    * Verify email input is visible
    */
   async verifyEmailInputVisible(): Promise<void> {
-    await this.emailInputLocator.expectVisible(10000);
+    await expect(this.emailInput).toBeVisible({ timeout: 10000 });
   }
 
   /**
    * Verify email input has correct placeholder
    */
   async verifyEmailInputPlaceholder(): Promise<void> {
-    const isVisible = await this.emailInputLocator.isVisible();
+    const isVisible = await this.emailInput.isVisible();
     if (isVisible) {
-      await this.emailInputLocator.expectAttribute('placeholder', 'johndoe@business.com');
+      await expect(this.emailInput).toHaveAttribute('placeholder', 'johndoe@business.com');
     }
   }
 
@@ -195,32 +134,32 @@ export class LoginPage extends BasePage {
    * Verify password field is visible
    */
   async verifyPasswordFieldVisible(): Promise<void> {
-    await this.passwordInputLocator.expectVisible(10000);
+    await expect(this.passwordInput).toBeVisible({ timeout: 10000 });
   }
 
   /**
    * Verify password field is NOT visible
    */
   async verifyPasswordFieldNotVisible(): Promise<void> {
-    await this.passwordInputLocator.expectHidden(5000);
+    await expect(this.passwordInput).toBeHidden({ timeout: 5000 });
   }
 
   /**
    * Verify continue button is disabled
    */
   async verifyContinueButtonDisabled(): Promise<boolean> {
-    const isVisible = await this.continueButtonLocator.isVisible();
+    const isVisible = await this.continueButton.isVisible();
     if (!isVisible) {
       return false;
     }
-    return await this.continueButtonLocator.isDisabled();
+    return await this.continueButton.isDisabled();
   }
 
   /**
    * Verify sign in button is visible
    */
   async verifySignInButtonVisible(): Promise<void> {
-    await this.signInButtonLocator.expectVisible(5000);
+    await expect(this.signInButton).toBeVisible({ timeout: 5000 });
   }
 
   /**
@@ -290,11 +229,11 @@ export class LoginPage extends BasePage {
    * Get email input value
    */
   async getEmailValue(): Promise<string> {
-    const isVisible = await this.emailInputLocator.isVisible();
+    const isVisible = await this.emailInput.isVisible();
     if (!isVisible) {
       throw new Error('Email input not found');
     }
-    return await this.emailInputLocator.getValue();
+    return await this.emailInput.inputValue();
   }
 
   /**
@@ -309,6 +248,6 @@ export class LoginPage extends BasePage {
    * Verify sign in heading is visible
    */
   async verifySignInHeadingVisible(): Promise<void> {
-    await this.signInHeadingLocator.expectVisible();
+    await expect(this.signInHeading).toBeVisible();
   }
 }

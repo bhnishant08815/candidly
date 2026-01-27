@@ -1,9 +1,19 @@
 import { test, expect } from '../fixtures/test-fixtures';
 import { TestDataGenerator } from '../../utils/data/test-data-generator';
+import { performTestCleanup } from '../../utils/cleanup/test-cleanup';
 
 test.describe('Applicants Automation', () => {
   // Configure timeout: 4x the default (480 seconds = 8 minutes)
   test.describe.configure({ timeout: 480 * 1000 });
+
+  // Cleanup after each test
+  test.afterEach(async ({ authenticatedPage, dashboardPage }) => {
+    await performTestCleanup(authenticatedPage, { 
+      dashboardPage, 
+      logoutViaApi: true,
+      verbose: false 
+    });
+  });
   
   test('should add a new applicant', async ({ authenticatedPage, dashboardPage, applicantsPage }) => {
     // Generate dynamic applicant data to avoid duplicate records

@@ -5,6 +5,7 @@ import { JobPostingPage } from '../../pages/job-posting-page';
 import { TestDataGenerator } from '../../utils/data/test-data-generator';
 import { testConfig } from '../../config/test-config';
 import { generateUniqueId } from '../../utils/data/date-name-utils';
+import { performTestCleanup } from '../../utils/cleanup/test-cleanup';
 
 /**
  * Job Posting Regression Test Suite
@@ -48,14 +49,13 @@ for (const profile of filteredProfiles) {
     });
 
     test.afterEach(async () => {
-      // Logout after each test case (even if test failed)
-      try {
-        if (dashboardPage) {
-          await dashboardPage.logout();
-        }
-      } catch (error) {
-        // Log error but don't fail - logout might fail if page state is unexpected
-        console.log(`Logout in afterEach failed: ${error}`);
+      // Use standardized cleanup
+      if (authenticatedPage) {
+        await performTestCleanup(authenticatedPage, {
+          dashboardPage,
+          logoutViaApi: true, // Prefer API logout for speed/reliability in regression
+          verbose: false
+        });
       }
     });
   

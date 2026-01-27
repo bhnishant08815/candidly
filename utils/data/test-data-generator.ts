@@ -4,7 +4,7 @@
  */
 
 import { generateUniqueId, formatDateToISO } from './date-name-utils';
-import { testConfig } from '../config/test-config';
+import { testConfig } from '../../config/test-config';
 
 export class TestDataGenerator {
   

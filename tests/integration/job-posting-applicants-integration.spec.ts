@@ -5,6 +5,7 @@ import { DashboardPage } from '../../pages/dashboard-page';
 import { JobPostingPage } from '../../pages/job-posting-page';
 import { ApplicantsPage } from '../../pages/applicants-page';
 import { testConfig } from '../../config/test-config';
+import { performTestCleanup } from '../../utils/cleanup/test-cleanup';
 
 /**
  * Integration Test Suite
@@ -32,10 +33,12 @@ test.describe('Job Posting - Applicants Integration Tests', () => {
     applicantsPage = new ApplicantsPage(page);
   });
 
-  test.afterEach(async () => {
-    if (dashboardPage) {
-      await dashboardPage.logout();
-    }
+  test.afterEach(async ({ page }) => {
+    await performTestCleanup(page, {
+      dashboardPage,
+      logoutViaApi: true,
+      verbose: false
+    });
   });
 
   // ==========================================

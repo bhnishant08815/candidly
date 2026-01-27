@@ -11,6 +11,7 @@ import { defineConfig, devices } from '@playwright/test';
  * See https://playwright.dev/docs/test-configuration.
  */
 export default defineConfig({
+  globalTeardown: require.resolve('./global-teardown'),
   timeout: 80 * 1000, // 80 seconds (reduced from 8 minutes for better performance)
   testDir: './tests',
   /* Run tests in files in parallel */
