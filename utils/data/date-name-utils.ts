@@ -64,6 +64,49 @@ export function generateAlphabeticUniqueId(idLength: number = 6): string {
 }
 
 /**
+ * Returns a short, presentable date/time suffix for use in job titles and names.
+ * Format: "12 Feb" or "12 Feb 14:32" with optional last 2 digits of timestamp for same-second uniqueness.
+ * Safe for display (no special chars that break titles).
+ */
+export function getReadableShortDateSuffix(): string {
+    const now = new Date();
+    const day = now.getDate();
+    const monthName = now.toLocaleString('default', { month: 'short' });
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const last2 = String(Date.now()).slice(-2);
+    return `${day} ${monthName} ${hours}:${minutes} ${last2}`;
+}
+
+/**
+ * Returns a presentable email local-part suffix (plus-addressing style).
+ * Format: +DDMMYY or +DDMMYYHHmm (e.g. +120225, +1202251432). Safe for email local part.
+ */
+export function getReadableEmailSuffix(): string {
+    const now = new Date();
+    const dd = String(now.getDate()).padStart(2, '0');
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const yy = String(now.getFullYear()).slice(-2);
+    const hh = String(now.getHours()).padStart(2, '0');
+    const min = String(now.getMinutes()).padStart(2, '0');
+    const ms2 = String(Date.now()).slice(-2);
+    return `+${dd}${mm}${yy}${hh}${min}${ms2}`;
+}
+
+/**
+ * Returns a date in MM/DD/YYYY format with optional day offset (for future dates).
+ * Use this for expected closing dates, interview dates, etc.
+ */
+export function getFutureDateMMDDYYYY(daysFromNow: number = 30): string {
+  const date = new Date();
+  date.setDate(date.getDate() + daysFromNow);
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${month}/${day}/${year}`;
+}
+
+/**
  * Returns today's date in MM/DD/YYYY format with optional offsets.
  * 
  * @param yearsOffset - The number of years to offset the date by. Default is 0.

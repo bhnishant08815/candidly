@@ -51,33 +51,34 @@ export default defineConfig({
     video: 'retain-on-failure',
     /* Enable screenshot on every step for better visual reporting (optional - can be enabled per test) */
     // screenshot: 'on',
-    /* Optimize browser context for headless mode */
-    ...(process.env.CI || !process.env.HEADED ? {
-      // Block resources that aren't needed for testing (images, fonts, stylesheets in headless)
-      // This significantly speeds up page loads
-      bypassCSP: true,
-      // Disable service workers for faster execution
-      serviceWorkers: 'block',
-    } : {}),
   },
   /* Global expect timeout */
   expect: {
     timeout: 10 * 1000,
   },
 
-  /* Configure projects for major browsers */
+  /* Configure projects for major browsers (Chromium default; use --project=firefox|webkit for cross-browser) */
   projects: [
     {
       name: 'chromium',
-      use: { 
+      use: {
         ...devices['Desktop Chrome'],
-        // Optimize viewport for headless mode
         viewport: { width: 1280, height: 720 },
-        // Block unnecessary resources in headless mode for faster execution
-        ...(process.env.CI || !process.env.HEADED ? {
-          // Intercept and block resource types that aren't needed for testing
-          // This is handled via route interception in base-page if needed
-        } : {}),
+        ...(process.env.CI || !process.env.HEADED ? {} : {}),
+      },
+    },
+    {
+      name: 'firefox',
+      use: {
+        ...devices['Desktop Firefox'],
+        viewport: { width: 1280, height: 720 },
+      },
+    },
+    {
+      name: 'webkit',
+      use: {
+        ...devices['Desktop Safari'],
+        viewport: { width: 1280, height: 720 },
       },
     },
   ],

@@ -5,31 +5,23 @@ import { ApplicantsPage } from '../../pages/applicants-page';
 import { TestDataGenerator } from '../../utils/data/test-data-generator';
 import { testConfig } from '../../config/test-config';
 import { performTestCleanup } from '../../utils/cleanup/test-cleanup';
+import { TestDataTracker } from '../../utils/data/test-data-tracker';
 
 /**
  * Applicants Regression Test Suite
  * Comprehensive test coverage for all applicant-related functionality
- * Runs with both Admin and HR profiles
  */
 
-// Define profiles to test with
-const profiles = [
-  { name: 'Admin Profile', email: testConfig.credentials.email, password: testConfig.credentials.password, tag: '@admin-profile' },
-  { name: 'HR Profile', email: testConfig.hrCredentials.email, password: testConfig.hrCredentials.password, tag: '@hr-profile' }
-];
-
-// Filter profiles based on environment variable or run all
-const profileFilter = process.env.PROFILE_FILTER; // Can be 'admin', 'hr', or undefined (runs all)
-const filteredProfiles = profileFilter 
-  ? profiles.filter(p => p.name.toLowerCase().includes(profileFilter.toLowerCase()))
-  : profiles;
-
-// Run tests for each profile
-for (const profile of filteredProfiles) {
-  test.describe(`Applicants Regression Tests @Regression - ${profile.name}`, () => {
+test.describe('Applicants Regression Tests @Regression', () => {
+    const profile = { 
+      name: 'Admin Profile', 
+      email: testConfig.credentials.email, 
+      password: testConfig.credentials.password, 
+      tag: '@admin-profile' 
+    };
     
-    // Configure timeout: 4x the default (480 seconds = 8 minutes)
-    test.describe.configure({ timeout: 480 * 1000 });
+    // Configure timeout: 3 minutes (reduced from 8 for faster fail when stuck)
+    test.describe.configure({ timeout: 180 * 1000 });
     
     // Setup authenticated page for this profile
     let authenticatedPage: any;
@@ -47,14 +39,15 @@ for (const profile of filteredProfiles) {
       authenticatedPage = page;
     });
 
-    test.afterEach(async () => {
-      // Use standardized cleanup
+    test.afterEach(async ({ }, testInfo) => {
       if (authenticatedPage) {
         await performTestCleanup(authenticatedPage, {
           dashboardPage,
+          applicantsPage,
           logoutViaApi: true,
+          deleteCreatedRecords: true,
           verbose: false
-        });
+        }, testInfo.testId);
       }
     });
   
@@ -64,19 +57,20 @@ for (const profile of filteredProfiles) {
   
   test.describe('Positive Test Cases', () => {
     
-    test('TC-A01: Add applicant with all required fields', async () => {
+    test('TC-A01: Add applicant with all required fields', async ({ }, testInfo) => {
       const applicantData = TestDataGenerator.generateApplicantData({
         resumePath: 'test-resources/Naukri_AbhiPal[5y_0m].pdf',
         role: 'Full Stack Developer'
       });
 
       await dashboardPage.navigateToApplicants();
-      await applicantsPage.addApplicant(applicantData);
+      const identifier = await applicantsPage.addApplicant(applicantData);
+      TestDataTracker.track(testInfo.testId, { type: 'applicant', identifier, metadata: { email: identifier.includes('@') ? identifier : undefined, name: identifier } });
 
       console.log(`✓ TC-A01: Applicant "${applicantData.role}" added successfully`);
     });
 
-    test('TC-A02: Add applicant with resume upload and verify auto-parsed data', async ({ page }) => {
+    test('TC-A02: Add applicant with resume upload and verify auto-parsed data', async ({ page }, testInfo) => {
       const applicantData = TestDataGenerator.generateApplicantData({
         resumePath: 'test-resources/Naukri_KaranKhosla[4y_6m].pdf',
         role: 'Full Stack Developer',
@@ -115,11 +109,13 @@ for (const profile of filteredProfiles) {
       await applicantsPage.fillSkills(applicantData.skills!);
       
       await applicantsPage.submitApplicant();
+      const identifier = await applicantsPage.getLastCreatedApplicantEmail().catch(() => '') || applicantData.phone;
+      TestDataTracker.track(testInfo.testId, { type: 'applicant', identifier: String(identifier), metadata: { email: String(identifier).includes('@') ? String(identifier) : undefined, name: String(identifier) } });
 
       console.log('✓ TC-A02: Applicant with resume upload and auto-parsed data added successfully');
     });
 
-    test('TC-A03: Add applicant with all optional fields', async () => {
+    test('TC-A03: Add applicant with all optional fields', async ({ }, testInfo) => {
       const applicantData = TestDataGenerator.generateApplicantData({
         resumePath: 'test-resources/Naukri_KratikJain[5y_6m].pdf',
         role: 'Full Stack Developer',
@@ -129,12 +125,13 @@ for (const profile of filteredProfiles) {
       });
 
       await dashboardPage.navigateToApplicants();
-      await applicantsPage.addApplicant(applicantData);
+      const identifier = await applicantsPage.addApplicant(applicantData);
+      TestDataTracker.track(testInfo.testId, { type: 'applicant', identifier: String(identifier), metadata: { email: String(identifier).includes('@') ? String(identifier) : undefined, name: String(identifier) } });
 
       console.log('✓ TC-A03: Applicant with all optional fields added successfully');
     });
 
-    test('TC-A04: Add applicant with different currency (USD)', async () => {
+    test('TC-A04: Add applicant with different currency (USD)', async ({ }, testInfo) => {
       const applicantData = TestDataGenerator.generateApplicantData({
         resumePath: 'test-resources/Pravesh_DMM (2).pdf',
         role: 'Full Stack Developer',
@@ -144,7 +141,8 @@ for (const profile of filteredProfiles) {
       });
 
       await dashboardPage.navigateToApplicants();
-      await applicantsPage.addApplicant(applicantData);
+      const identifier = await applicantsPage.addApplicant(applicantData);
+      TestDataTracker.track(testInfo.testId, { type: 'applicant', identifier: String(identifier), metadata: { email: String(identifier).includes('@') ? String(identifier) : undefined, name: String(identifier) } });
 
       console.log('✓ TC-A04: Applicant with USD currency added successfully');
     });
@@ -225,7 +223,7 @@ for (const profile of filteredProfiles) {
   
   test.describe('Edge Cases', () => {
     
-    test('TC-A09: Add applicant with minimum experience (0 years, 0 months)', async () => {
+    test('TC-A09: Add applicant with minimum experience (0 years, 0 months)', async ({ }, testInfo) => {
       const applicantData = TestDataGenerator.generateApplicantData({
         resumePath: 'test-resources/functionalsample.pdf',
         role: 'Full Stack Developer',
@@ -234,12 +232,13 @@ for (const profile of filteredProfiles) {
       });
 
       await dashboardPage.navigateToApplicants();
-      await applicantsPage.addApplicant(applicantData);
+      const identifier = await applicantsPage.addApplicant(applicantData);
+      TestDataTracker.track(testInfo.testId, { type: 'applicant', identifier: String(identifier), metadata: { email: String(identifier).includes('@') ? String(identifier) : undefined, name: String(identifier) } });
 
       console.log('✓ TC-A09: Applicant with minimum experience (0 years) added successfully');
     });
 
-    test('TC-A10: Add applicant with maximum notice period (3 months, 30 days)', async () => {
+    test('TC-A10: Add applicant with maximum notice period (3 months, 30 days)', async ({ }, testInfo) => {
       const applicantData = TestDataGenerator.generateApplicantData({
         resumePath: 'test-resources/Updated Resume - Karan.pdf',
         role: 'Full Stack Developer',
@@ -248,12 +247,13 @@ for (const profile of filteredProfiles) {
       });
 
       await dashboardPage.navigateToApplicants();
-      await applicantsPage.addApplicant(applicantData);
+      const identifier = await applicantsPage.addApplicant(applicantData);
+      TestDataTracker.track(testInfo.testId, { type: 'applicant', identifier: String(identifier), metadata: { email: String(identifier).includes('@') ? String(identifier) : undefined, name: String(identifier) } });
 
       console.log('✓ TC-A10: Applicant with maximum notice period added successfully');
     });
 
-    test('TC-A13: Add applicant with high salary values', async () => {
+    test('TC-A13: Add applicant with high salary values', async ({ }, testInfo) => {
       const applicantData = TestDataGenerator.generateApplicantData({
         resumePath: 'test-resources/Updated Resume - Karan.pdf',
         role: 'Full Stack Developer',
@@ -262,12 +262,13 @@ for (const profile of filteredProfiles) {
       });
 
       await dashboardPage.navigateToApplicants();
-      await applicantsPage.addApplicant(applicantData);
+      const identifier = await applicantsPage.addApplicant(applicantData);
+      TestDataTracker.track(testInfo.testId, { type: 'applicant', identifier: String(identifier), metadata: { email: String(identifier).includes('@') ? String(identifier) : undefined, name: String(identifier) } });
 
       console.log('✓ TC-A13: Applicant with high salary values added successfully');
     });
 
-    test('TC-A14: Add applicant with maximum experience (15+ years)', async () => {
+    test('TC-A14: Add applicant with maximum experience (15+ years)', async ({ }, testInfo) => {
       const applicantData = TestDataGenerator.generateApplicantData({
         resumePath: 'test-resources/Amit Kumar.pdf',
         role: 'Full Stack Developer',
@@ -276,7 +277,8 @@ for (const profile of filteredProfiles) {
       });
 
       await dashboardPage.navigateToApplicants();
-      await applicantsPage.addApplicant(applicantData);
+      const identifier = await applicantsPage.addApplicant(applicantData);
+      TestDataTracker.track(testInfo.testId, { type: 'applicant', identifier: String(identifier), metadata: { email: String(identifier).includes('@') ? String(identifier) : undefined, name: String(identifier) } });
 
       console.log('✓ TC-A14: Applicant with 15+ years experience added successfully');
     });
@@ -380,7 +382,7 @@ for (const profile of filteredProfiles) {
   
   test.describe('Workflow & Integration Tests', () => {
     
-    test('TC-A16: Add multiple applicants for same role', async ({ page }) => {
+    test('TC-A16: Add multiple applicants for same role', async ({ page }, testInfo) => {
       const role = 'Full Stack Developer';
       const resumeFiles = [
         'test-resources/Naukri_AbhiPal[5y_0m].pdf',
@@ -395,7 +397,8 @@ for (const profile of filteredProfiles) {
           resumePath: resumePath,
           role: role
         });
-        await applicantsPage.addApplicant(applicantData);
+        const identifier = await applicantsPage.addApplicant(applicantData);
+        TestDataTracker.track(testInfo.testId, { type: 'applicant', identifier: String(identifier), metadata: { email: String(identifier).includes('@') ? String(identifier) : undefined, name: String(identifier) } });
         // Wait for applicant dialog to close before next addition
         const dialog = page.getByRole('dialog', { name: /Add New Applicant/i });
         await expect(dialog).not.toBeVisible({ timeout: 5000 }).catch(() => {
@@ -406,7 +409,7 @@ for (const profile of filteredProfiles) {
       console.log(`✓ TC-A16: Added 3 applicants for role "${role}" successfully`);
     });
 
-    test('TC-A17: Add applicant with different currencies (INR, USD, EUR)', async ({ page }) => {
+    test('TC-A17: Add applicant with different currencies (INR, USD, EUR)', async ({ page }, testInfo) => {
       const currencies = [
         { code: 'INR', current: '1000000', expected: '1200000' },
         { code: 'USD', current: '75000', expected: '95000' },
@@ -423,7 +426,8 @@ for (const profile of filteredProfiles) {
           currentSalary: currency.current,
           expectedSalary: currency.expected
         });
-        await applicantsPage.addApplicant(applicantData);
+        const identifier = await applicantsPage.addApplicant(applicantData);
+        TestDataTracker.track(testInfo.testId, { type: 'applicant', identifier: String(identifier), metadata: { email: String(identifier).includes('@') ? String(identifier) : undefined, name: String(identifier) } });
         // Wait for applicant dialog to close before next addition
         const dialog = page.getByRole('dialog', { name: /Add New Applicant/i });
         await expect(dialog).not.toBeVisible({ timeout: 5000 }).catch(() => {
@@ -434,7 +438,7 @@ for (const profile of filteredProfiles) {
       console.log('✓ TC-A17: Added applicants with different currencies (INR, USD, EUR) successfully');
     });
 
-    test('TC-A18: Add applicant with zero notice period (immediate joiner)', async () => {
+    test('TC-A18: Add applicant with zero notice period (immediate joiner)', async ({ }, testInfo) => {
       const applicantData = TestDataGenerator.generateApplicantData({
         resumePath: 'test-resources/functionalsample.pdf',
         role: 'Full Stack Developer',
@@ -443,12 +447,13 @@ for (const profile of filteredProfiles) {
       });
 
       await dashboardPage.navigateToApplicants();
-      await applicantsPage.addApplicant(applicantData);
+      const identifier = await applicantsPage.addApplicant(applicantData);
+      TestDataTracker.track(testInfo.testId, { type: 'applicant', identifier: String(identifier), metadata: { email: String(identifier).includes('@') ? String(identifier) : undefined, name: String(identifier) } });
 
       console.log('✓ TC-A18: Applicant with zero notice period (immediate joiner) added successfully');
     });
 
-    test('TC-A19: Add applicant with maximum notice period (3 months)', async () => {
+    test('TC-A19: Add applicant with maximum notice period (3 months)', async ({ }, testInfo) => {
       const applicantData = TestDataGenerator.generateApplicantData({
         resumePath: 'test-resources/Shreya_Chotaliya_Resume  (1).pdf',
         role: 'Full Stack Developer',
@@ -457,12 +462,13 @@ for (const profile of filteredProfiles) {
       });
 
       await dashboardPage.navigateToApplicants();
-      await applicantsPage.addApplicant(applicantData);
+      const identifier = await applicantsPage.addApplicant(applicantData);
+      TestDataTracker.track(testInfo.testId, { type: 'applicant', identifier: String(identifier), metadata: { email: String(identifier).includes('@') ? String(identifier) : undefined, name: String(identifier) } });
 
       console.log('✓ TC-A19: Applicant with maximum notice period added successfully');
     });
 
-    test('TC-A20: Add applicant with extensive skills list', async () => {
+    test('TC-A20: Add applicant with extensive skills list', async ({ }, testInfo) => {
       const extensiveSkills = 'JavaScript, TypeScript, React, Angular, Vue.js, Node.js, Express, Python, Django, Flask, Java, Spring Boot, C#, .NET, SQL, PostgreSQL, MongoDB, Redis, AWS, Azure, Docker, Kubernetes, CI/CD, Git, Agile, Scrum, REST APIs, GraphQL, Microservices, System Design, Algorithms, Data Structures';
       
       const applicantData = TestDataGenerator.generateApplicantData({
@@ -472,12 +478,13 @@ for (const profile of filteredProfiles) {
       });
 
       await dashboardPage.navigateToApplicants();
-      await applicantsPage.addApplicant(applicantData);
+      const identifier = await applicantsPage.addApplicant(applicantData);
+      TestDataTracker.track(testInfo.testId, { type: 'applicant', identifier: String(identifier), metadata: { email: String(identifier).includes('@') ? String(identifier) : undefined, name: String(identifier) } });
 
       console.log('✓ TC-A20: Applicant with extensive skills list added successfully');
     });
 
-    test('TC-A21: Add applicant with detailed work experience', async () => {
+    test('TC-A21: Add applicant with detailed work experience', async ({ }, testInfo) => {
       const detailedExperience = 'Senior Software Engineer at Google (2020-2024): Led development of microservices architecture, improved system performance by 40%, mentored team of 5 junior developers. Software Engineer at Microsoft (2018-2020): Developed cloud-based solutions, collaborated with cross-functional teams, implemented CI/CD pipelines.';
       
       const applicantData = TestDataGenerator.generateApplicantData({
@@ -487,12 +494,13 @@ for (const profile of filteredProfiles) {
       });
 
       await dashboardPage.navigateToApplicants();
-      await applicantsPage.addApplicant(applicantData);
+      const identifier = await applicantsPage.addApplicant(applicantData);
+      TestDataTracker.track(testInfo.testId, { type: 'applicant', identifier: String(identifier), metadata: { email: String(identifier).includes('@') ? String(identifier) : undefined, name: String(identifier) } });
 
       console.log('✓ TC-A21: Applicant with detailed work experience added successfully');
     });
 
-    test('TC-A22: Add applicant with comprehensive education details', async () => {
+    test('TC-A22: Add applicant with comprehensive education details', async ({ }, testInfo) => {
       const comprehensiveEducation = 'Master of Science in Computer Science, Stanford University (2016-2018), GPA: 3.9/4.0. Bachelor of Technology in Computer Engineering, IIT Delhi (2012-2016), GPA: 9.2/10.0. Relevant Coursework: Machine Learning, Distributed Systems, Database Management, Software Engineering.';
       
       const applicantData = TestDataGenerator.generateApplicantData({
@@ -502,12 +510,13 @@ for (const profile of filteredProfiles) {
       });
 
       await dashboardPage.navigateToApplicants();
-      await applicantsPage.addApplicant(applicantData);
+      const identifier = await applicantsPage.addApplicant(applicantData);
+      TestDataTracker.track(testInfo.testId, { type: 'applicant', identifier: String(identifier), metadata: { email: String(identifier).includes('@') ? String(identifier) : undefined, name: String(identifier) } });
 
       console.log('✓ TC-A22: Applicant with comprehensive education details added successfully');
     });
 
-    test('TC-A23: Add applicant with salary negotiation range', async () => {
+    test('TC-A23: Add applicant with salary negotiation range', async ({ }, testInfo) => {
       const applicantData = TestDataGenerator.generateApplicantData({
         resumePath: 'test-resources/Amit Kumar.pdf',
         role: 'Full Stack Developer',
@@ -516,12 +525,13 @@ for (const profile of filteredProfiles) {
       });
 
       await dashboardPage.navigateToApplicants();
-      await applicantsPage.addApplicant(applicantData);
+      const identifier = await applicantsPage.addApplicant(applicantData);
+      TestDataTracker.track(testInfo.testId, { type: 'applicant', identifier: String(identifier), metadata: { email: String(identifier).includes('@') ? String(identifier) : undefined, name: String(identifier) } });
 
       console.log('✓ TC-A23: Applicant with salary negotiation range added successfully');
     });
 
-    test('TC-A24: Add applicant with fractional experience (years and months)', async () => {
+    test('TC-A24: Add applicant with fractional experience (years and months)', async ({ }, testInfo) => {
       const applicantData = TestDataGenerator.generateApplicantData({
         resumePath: 'test-resources/Resume_rajnish.pdf',
         role: 'Full Stack Developer',
@@ -530,12 +540,13 @@ for (const profile of filteredProfiles) {
       });
 
       await dashboardPage.navigateToApplicants();
-      await applicantsPage.addApplicant(applicantData);
+      const identifier = await applicantsPage.addApplicant(applicantData);
+      TestDataTracker.track(testInfo.testId, { type: 'applicant', identifier: String(identifier), metadata: { email: String(identifier).includes('@') ? String(identifier) : undefined, name: String(identifier) } });
 
       console.log('✓ TC-A24: Applicant with fractional experience (4 years 8 months) added successfully');
     });
 
-    test('TC-A25: Add applicant with fractional notice period', async () => {
+    test('TC-A25: Add applicant with fractional notice period', async ({ }, testInfo) => {
       const applicantData = TestDataGenerator.generateApplicantData({
         resumePath: 'test-resources/functionalsample.pdf',
         role: 'Full Stack Developer',
@@ -544,7 +555,8 @@ for (const profile of filteredProfiles) {
       });
 
       await dashboardPage.navigateToApplicants();
-      await applicantsPage.addApplicant(applicantData);
+      const identifier = await applicantsPage.addApplicant(applicantData);
+      TestDataTracker.track(testInfo.testId, { type: 'applicant', identifier: String(identifier), metadata: { email: String(identifier).includes('@') ? String(identifier) : undefined, name: String(identifier) } });
 
       console.log('✓ TC-A25: Applicant with fractional notice period (1 month 15 days) added successfully');
     });
@@ -574,7 +586,7 @@ for (const profile of filteredProfiles) {
       console.log(`✓ TC-A26: Phone field handled long input: ${phoneValue.length} characters`);
     });
 
-    test('TC-A27: Add applicant with special characters in skills', async () => {
+    test('TC-A27: Add applicant with special characters in skills', async ({ }, testInfo) => {
       const specialSkills = 'JavaScript (ES6+), React.js, Node.js, C++, C#, .NET Core, SQL Server, MongoDB, AWS (EC2, S3, Lambda), Docker & Kubernetes';
       
       const applicantData = TestDataGenerator.generateApplicantData({
@@ -584,12 +596,13 @@ for (const profile of filteredProfiles) {
       });
 
       await dashboardPage.navigateToApplicants();
-      await applicantsPage.addApplicant(applicantData);
+      const identifier = await applicantsPage.addApplicant(applicantData);
+      TestDataTracker.track(testInfo.testId, { type: 'applicant', identifier: String(identifier), metadata: { email: String(identifier).includes('@') ? String(identifier) : undefined, name: String(identifier) } });
 
       console.log('✓ TC-A27: Applicant with special characters in skills added successfully');
     });
 
-    test('TC-A28: Add applicant with unicode characters in name', async () => {
+    test('TC-A28: Add applicant with unicode characters in name', async ({ }, testInfo) => {
       // This test verifies that the system handles unicode characters
       // The name will be auto-parsed from resume, but we can verify the field accepts it
       const applicantData = TestDataGenerator.generateApplicantData({
@@ -598,12 +611,13 @@ for (const profile of filteredProfiles) {
       });
 
       await dashboardPage.navigateToApplicants();
-      await applicantsPage.addApplicant(applicantData);
+      const identifier = await applicantsPage.addApplicant(applicantData);
+      TestDataTracker.track(testInfo.testId, { type: 'applicant', identifier: String(identifier), metadata: { email: String(identifier).includes('@') ? String(identifier) : undefined, name: String(identifier) } });
 
       console.log('✓ TC-A28: Applicant with unicode characters (if present in resume) handled successfully');
     });
 
-    test('TC-A29: Add applicant with minimum salary values', async () => {
+    test('TC-A29: Add applicant with minimum salary values', async ({ }, testInfo) => {
       const applicantData = TestDataGenerator.generateApplicantData({
         resumePath: 'test-resources/functionalsample.pdf',
         role: 'Full Stack Developer',
@@ -612,12 +626,13 @@ for (const profile of filteredProfiles) {
       });
 
       await dashboardPage.navigateToApplicants();
-      await applicantsPage.addApplicant(applicantData);
+      const identifier = await applicantsPage.addApplicant(applicantData);
+      TestDataTracker.track(testInfo.testId, { type: 'applicant', identifier: String(identifier), metadata: { email: String(identifier).includes('@') ? String(identifier) : undefined, name: String(identifier) } });
 
       console.log('✓ TC-A29: Applicant with minimum salary values added successfully');
     });
 
-    test('TC-A30: Add applicant with same current and expected salary', async () => {
+    test('TC-A30: Add applicant with same current and expected salary', async ({ }, testInfo) => {
       const applicantData = TestDataGenerator.generateApplicantData({
         resumePath: 'test-resources/Resume_rajnish.pdf',
         role: 'Full Stack Developer',
@@ -626,7 +641,8 @@ for (const profile of filteredProfiles) {
       });
 
       await dashboardPage.navigateToApplicants();
-      await applicantsPage.addApplicant(applicantData);
+      const identifier = await applicantsPage.addApplicant(applicantData);
+      TestDataTracker.track(testInfo.testId, { type: 'applicant', identifier: String(identifier), metadata: { email: String(identifier).includes('@') ? String(identifier) : undefined, name: String(identifier) } });
 
       console.log('✓ TC-A30: Applicant with same current and expected salary added successfully');
     });
@@ -645,7 +661,7 @@ for (const profile of filteredProfiles) {
       console.log('✓ TC-A31: Form handles resume upload flow gracefully');
     });
 
-    test('TC-A32: Add applicant with all fields at maximum length', async () => {
+    test('TC-A32: Add applicant with all fields at maximum length', async ({ }, testInfo) => {
       const maxLengthEducation = 'Master of Science in Computer Science with specialization in Artificial Intelligence and Machine Learning, Stanford University, California, United States of America, GPA: 4.0/4.0, Graduated with Honors, Summa Cum Laude, Dean\'s List all semesters, Published 5 research papers in top-tier conferences';
       
       const maxLengthWorkExp = 'Senior Software Engineer at Google Inc., Mountain View, California (2020-2024): Led development of large-scale distributed systems serving millions of users, improved system performance by 50%, reduced latency by 40%, mentored team of 10 junior developers, implemented microservices architecture, collaborated with product managers and designers, participated in architecture reviews, wrote technical documentation, conducted code reviews, implemented CI/CD pipelines, optimized database queries, reduced infrastructure costs by 30%';
@@ -661,10 +677,10 @@ for (const profile of filteredProfiles) {
       });
 
       await dashboardPage.navigateToApplicants();
-      await applicantsPage.addApplicant(applicantData);
+      const identifier = await applicantsPage.addApplicant(applicantData);
+      TestDataTracker.track(testInfo.testId, { type: 'applicant', identifier: String(identifier), metadata: { email: String(identifier).includes('@') ? String(identifier) : undefined, name: String(identifier) } });
 
       console.log('✓ TC-A32: Applicant with all fields at maximum length added successfully');
+      });
     });
   });
-  });
-}

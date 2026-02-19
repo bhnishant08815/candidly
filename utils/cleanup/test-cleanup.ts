@@ -4,8 +4,12 @@
  */
 
 import { Page, BrowserContext } from '@playwright/test';
-import { testConfig } from '../../config/test-config';
+import { logoutViaApiSafe } from '../auth/logout-api';
 import { DashboardPage } from '../../pages/dashboard-page';
+import { JobPostingPage } from '../../pages/job-posting-page';
+import { ApplicantsPage } from '../../pages/applicants-page';
+import { InterviewPage } from '../../pages/interview-page';
+import { TestDataTracker, TrackedResource } from '../data/test-data-tracker';
 
 export interface CleanupOptions {
   /** Logout via API instead of UI (faster and more reliable) */
@@ -18,6 +22,14 @@ export interface CleanupOptions {
   dashboardPage?: DashboardPage;
   /** Enable verbose logging */
   verbose?: boolean;
+  /** Delete created records during cleanup */
+  deleteCreatedRecords?: boolean;
+  /** JobPostingPage instance for deleting job postings */
+  jobPostingPage?: JobPostingPage;
+  /** ApplicantsPage instance for deleting applicants */
+  applicantsPage?: ApplicantsPage;
+  /** InterviewPage instance for deleting interviews */
+  interviewPage?: InterviewPage;
 }
 
 const DEFAULT_OPTIONS: CleanupOptions = {
@@ -33,73 +45,174 @@ const DEFAULT_OPTIONS: CleanupOptions = {
  * 
  * @param page - Playwright Page instance
  * @param options - Cleanup options
+ * @param testId - Optional test ID for tracking and deleting created records
  */
 export async function performTestCleanup(
   page: Page,
-  options: CleanupOptions = {}
+  options: CleanupOptions = {},
+  testId?: string
 ): Promise<void> {
   const opts = { ...DEFAULT_OPTIONS, ...options };
   
   try {
-    // Step 1: Close any open dialogs
+    // Step 1: Delete created records (before logout to ensure we're authenticated)
+    if (opts.deleteCreatedRecords && testId) {
+      await deleteTrackedRecords(page, testId, opts);
+    } else if (opts.deleteCreatedRecords && !testId) {
+      // Always warn if deleteCreatedRecords is true but testId is missing
+      console.warn(`⚠️ [Cleanup] deleteCreatedRecords is enabled but testId is not provided. Records will not be deleted.`);
+    }
+
+    // Step 2: Close any open dialogs
     if (opts.closeDialogs) {
       await closeDialogs(page, opts.verbose);
     }
 
-    // Step 2: Dismiss notifications
+    // Step 3: Dismiss notifications
     if (opts.dismissNotifications) {
       await dismissNotifications(page, opts.verbose);
     }
 
-    // Step 3: Logout
+    // Step 4: Logout
     if (opts.logoutViaApi) {
       await logoutViaApiSafe(page, opts.verbose);
     } else if (opts.dashboardPage) {
       await logoutViaUISafe(opts.dashboardPage, opts.verbose);
     }
   } catch (error) {
-    // Never fail the test due to cleanup errors
-    if (opts.verbose) {
-      console.log(`⚠️ Cleanup encountered error: ${error}`);
+    // Never fail the test due to cleanup errors, but always log them
+    console.warn(`⚠️ [Cleanup] Encountered unexpected error during cleanup:`, error);
+    if (opts.verbose && error instanceof Error) {
+      console.warn(`   Error message: ${error.message}`);
+      if (error.stack) {
+        console.warn(`   Stack trace: ${error.stack.split('\n').slice(0, 5).join('\n')}`);
+      }
     }
   }
 }
 
 /**
- * Safely logout via API - won't throw on failure
+ * Delete all tracked records for a test
+ * Deletes in reverse order (LIFO) to handle dependencies
  */
-export async function logoutViaApiSafe(
+async function deleteTrackedRecords(
   page: Page,
-  verbose: boolean = false
-): Promise<boolean> {
-  try {
-    const logoutConfig = testConfig.logoutApi;
-    
-    if (!logoutConfig || !logoutConfig.url) {
-      if (verbose) {
-        console.log('ℹ️ Logout API not configured, skipping API logout');
+  testId: string,
+  options: CleanupOptions
+): Promise<void> {
+  const resources = TestDataTracker.getTrackedResources(testId);
+  
+  if (resources.length === 0) {
+    if (options.verbose) {
+      console.log(`ℹ️ No tracked resources to delete for test: ${testId}`);
+    }
+    return;
+  }
+  
+  // Always log when starting deletion (even without verbose)
+  console.log(`🗑️ [Cleanup] Starting deletion of ${resources.length} tracked resource(s) for test: ${testId}`);
+  
+  if (options.verbose) {
+    console.log(`   Resources to delete:`, resources.map(r => `${r.type}(${r.identifier})`).join(', '));
+  }
+  
+  let successCount = 0;
+  let failureCount = 0;
+  const failures: Array<{ type: string; identifier: string; error: any }> = [];
+  
+  // Delete in reverse order (LIFO) to handle dependencies
+  // Order: interviews → applicants → job postings
+  for (const resource of resources.reverse()) {
+    try {
+      const startTime = Date.now();
+      
+      switch (resource.type) {
+        case 'jobPosting':
+          if (options.jobPostingPage) {
+            if (options.verbose) {
+              console.log(`   → Deleting job posting: "${resource.identifier}"`);
+            }
+            await options.jobPostingPage.deleteJobPostingByTitle(resource.identifier);
+            successCount++;
+            if (options.verbose) {
+              console.log(`   ✓ Successfully deleted job posting: "${resource.identifier}" (${Date.now() - startTime}ms)`);
+            }
+          } else {
+            const error = `JobPostingPage not provided`;
+            console.warn(`⚠️ [Cleanup] Cannot delete job posting "${resource.identifier}": ${error}`);
+            failureCount++;
+            failures.push({ type: resource.type, identifier: resource.identifier, error });
+          }
+          break;
+        case 'applicant':
+          if (options.applicantsPage) {
+            if (options.verbose) {
+              console.log(`   → Deleting applicant: "${resource.identifier}"`);
+            }
+            await options.applicantsPage.deleteApplicantByIdentifier(resource.identifier);
+            successCount++;
+            if (options.verbose) {
+              console.log(`   ✓ Successfully deleted applicant: "${resource.identifier}" (${Date.now() - startTime}ms)`);
+            }
+          } else {
+            const error = `ApplicantsPage not provided`;
+            console.warn(`⚠️ [Cleanup] Cannot delete applicant "${resource.identifier}": ${error}`);
+            failureCount++;
+            failures.push({ type: resource.type, identifier: resource.identifier, error });
+          }
+          break;
+        case 'interview':
+          if (options.interviewPage) {
+            if (options.verbose) {
+              console.log(`   → Deleting interview: "${resource.identifier}"`);
+            }
+            // InterviewPage.deleteInterview requires identifier and confirmText
+            // Use identifier for both if available
+            await options.interviewPage.deleteInterview(resource.identifier, resource.identifier);
+            successCount++;
+            if (options.verbose) {
+              console.log(`   ✓ Successfully deleted interview: "${resource.identifier}" (${Date.now() - startTime}ms)`);
+            }
+          } else {
+            const error = `InterviewPage not provided`;
+            console.warn(`⚠️ [Cleanup] Cannot delete interview "${resource.identifier}": ${error}`);
+            failureCount++;
+            failures.push({ type: resource.type, identifier: resource.identifier, error });
+          }
+          break;
       }
-      return false;
-    }
-
-    const response = await page.request.fetch(logoutConfig.url, {
-      method: logoutConfig.method ?? 'GET',
-    });
-
-    if (verbose) {
-      if (response.ok()) {
-        console.log(`🔓 Logout API successful: ${response.status()}`);
-      } else {
-        console.log(`⚠️ Logout API returned: ${response.status()}`);
+    } catch (error) {
+      // Log but don't fail - cleanup errors shouldn't fail tests
+      failureCount++;
+      failures.push({ type: resource.type, identifier: resource.identifier, error });
+      console.warn(`⚠️ [Cleanup] Failed to delete ${resource.type} "${resource.identifier}":`, error);
+      if (options.verbose && error instanceof Error) {
+        console.warn(`   Error details: ${error.message}`);
+        if (error.stack) {
+          console.warn(`   Stack: ${error.stack.split('\n').slice(0, 3).join('\n')}`);
+        }
       }
     }
-
-    return response.ok();
-  } catch (error) {
-    if (verbose) {
-      console.log(`⚠️ Logout API failed: ${error}`);
+  }
+  
+  // Clear tracked resources after deletion attempt
+  TestDataTracker.clear(testId);
+  
+  // Always log summary (even without verbose)
+  if (successCount > 0 && failureCount === 0) {
+    console.log(`✅ [Cleanup] Successfully deleted ${successCount} resource(s) for test: ${testId}`);
+  } else if (successCount > 0 && failureCount > 0) {
+    console.log(`⚠️ [Cleanup] Deleted ${successCount} resource(s), failed ${failureCount} resource(s) for test: ${testId}`);
+    if (options.verbose) {
+      console.log(`   Failures:`, failures.map(f => `${f.type}(${f.identifier})`).join(', '));
     }
-    return false;
+  } else if (failureCount > 0) {
+    console.error(`❌ [Cleanup] Failed to delete all ${failureCount} resource(s) for test: ${testId}`);
+    if (options.verbose) {
+      failures.forEach(f => {
+        console.error(`   - ${f.type} "${f.identifier}":`, f.error);
+      });
+    }
   }
 }
 
@@ -135,8 +248,7 @@ export async function closeDialogs(
     // Try pressing Escape to close any modal
     await page.keyboard.press('Escape');
     
-    // Wait briefly for dialog to close
-    await page.waitForTimeout(300);
+    await page.waitForLoadState('domcontentloaded', { timeout: 500 }).catch(() => {});
     
     // Check for common close buttons and click if visible
     const closeButtons = [

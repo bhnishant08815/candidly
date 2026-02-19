@@ -3,7 +3,7 @@
  * Generates dynamic test data to avoid duplicate record issues
  */
 
-import { generateUniqueId, formatDateToISO } from './date-name-utils';
+import { formatDateToISO, getFutureDateMMDDYYYY, getReadableShortDateSuffix, getReadableEmailSuffix } from './date-name-utils';
 import { testConfig } from '../../config/test-config';
 
 export class TestDataGenerator {
@@ -13,10 +13,9 @@ export class TestDataGenerator {
    * Provides diverse, realistic job titles with various levels and specializations
    */
   static generateJobTitle(baseTitle?: string): string {
-    // If base title is provided, use it directly
+    // If base title is provided, use it with presentable date suffix
     if (baseTitle) {
-      const uniqueId = generateUniqueId(6);
-      return `${baseTitle}_${uniqueId}`;
+      return `${baseTitle} (${getReadableShortDateSuffix()})`;
     }
 
     // Comprehensive list of job titles organized by category
@@ -87,8 +86,7 @@ export class TestDataGenerator {
       selectedRole = `${selectedRole} (${tech})`;
     }
 
-    const uniqueId = generateUniqueId(6);
-    return `${selectedRole}_${uniqueId}`;
+    return `${selectedRole} (${getReadableShortDateSuffix()})`;
   }
 
   /**
@@ -106,10 +104,10 @@ export class TestDataGenerator {
    */
   static generateEmail(name?: string): string {
     const baseName = name || this.generateFirstName();
-    const uniqueId = generateUniqueId(6);
+    const suffix = getReadableEmailSuffix();
     const domains = ['gmail.com', 'yahoo.com', 'outlook.com', 'test.com', 'example.com'];
     const domain = domains[Math.floor(Math.random() * domains.length)];
-    return `${baseName.toLowerCase()}${uniqueId}@${domain}`;
+    return `${baseName.toLowerCase()}${suffix}@${domain}`;
   }
 
   /**
@@ -254,24 +252,10 @@ export class TestDataGenerator {
   }
 
   /**
-   * Generates a future date for expected closing date
-   * Defaults to 30 days from now
+   * Generates a future date for expected closing date (MM/DD/YYYY). Defaults to 30 days from now.
    */
   static generateExpectedClosingDate(daysFromNow: number = 30): string {
-    const date = new Date();
-    date.setDate(date.getDate() + daysFromNow);
-    
-    // Format as MM/DD/YYYY to match the input requirement (as seen in browser interaction issues)
-    // However, the browser interaction showed 12/17/2025 failed with "Malformed value"
-    // The previous browser attempt tried "12/17/2025". 
-    // Let's try to ensure we use a standard format that might work with date inputs (YYYY-MM-DD is standard for value attribute, but UI might want MM/DD/YYYY)
-    // We will return a Date object string for now, and handle formatting in the Page Object or Test if specific format is strictly required by the input type.
-    // Actually, looking at the previous error "Malformed value", it suggests the input might expect a specific format or it's a date type input.
-    // Let's provide MM/DD/YYYY as a string first.
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${month}/${day}/${year}`;
+    return getFutureDateMMDDYYYY(daysFromNow);
   }
 
   /**
@@ -284,12 +268,10 @@ export class TestDataGenerator {
 
     // Otherwise use configured user display name and take first token.
     // (Dropdown typically shows only the first name.)
-    const configured =
-      (testConfig.credentials.userName || '').trim() ||
-      (testConfig.hrCredentials.userName || '').trim();
+    const configured = (testConfig.credentials.userName || '').trim();
 
     const firstName = configured.split(/\s+/)[0];
-    return firstName || 'HR';
+    return firstName || 'Admin';
   }
 
   /**

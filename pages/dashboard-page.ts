@@ -1,6 +1,5 @@
 import { Page, expect, Locator } from '@playwright/test';
 import { BasePage } from './base-page';
-import { testConfig } from '../config/test-config';
 
 /**
  * Dashboard Page Object Model
@@ -38,6 +37,13 @@ export class DashboardPage extends BasePage {
   }
 
   /**
+   * Schedule Interview button (confirms we're on Interviews page)
+   */
+  private get interviewsPageIndicator(): Locator {
+    return this.page.getByRole('button', { name: 'Schedule Interview' });
+  }
+
+  /**
    * Add New Job button
    */
   private get addNewJobButton(): Locator {
@@ -67,18 +73,20 @@ export class DashboardPage extends BasePage {
 
   /**
    * Profile button (displays user initials, e.g., "NB", "AB")
+   * Scoped to nav/header to avoid matching other buttons with initials.
    */
   private get profileButton(): Locator {
-    // Profile button with 1-3 uppercase letters (e.g., "NB", "AB")
-    return this.page.locator('button').filter({ hasText: /^[A-Z]{1,3}$/ }).first();
+    return this.page
+      .locator('nav button, header button, [role="banner"] button')
+      .filter({ hasText: /^[A-Z]{1,3}$/ })
+      .first();
   }
 
   /**
    * Logout button in dropdown menu
    */
   private get logoutDropdownButton(): Locator {
-    // Logout button within dropdown/menu context
-    return this.page.getByRole('button', { name: 'Logout' }).first();
+    return this.page.getByRole('button', { name: 'Logout' }).last();
   }
 
   // Legacy locators for backward compatibility with notifications
@@ -94,42 +102,17 @@ export class DashboardPage extends BasePage {
   async navigateToPostings(): Promise<void> {
     await expect(this.postingsButton).toBeVisible();
     await this.postingsButton.click();
-    await this.wait(1000);
+    await expect(this.postingsHeading.or(this.addNewJobButton).first()).toBeVisible({ timeout: 10000 });
   }
 
   /**
    * Navigate to Applicants page
    */
   async navigateToApplicants(): Promise<void> {
-    // Check for and close any open dialogs that might block navigation
-    const addApplicantDialog = this.page.getByRole('dialog', { name: /Add New Applicant/i });
-    const isAddApplicantDialogOpen = await addApplicantDialog.isVisible({ timeout: 2000 }).catch(() => false);
-    
-    if (isAddApplicantDialogOpen) {
-      // Try to close using Cancel or Close button
-      const cancelButton = this.page.getByRole('button', { name: 'Cancel' });
-      const closeButton = this.page.getByRole('button', { name: 'Close' });
-      
-      if (await cancelButton.isVisible({ timeout: 1000 }).catch(() => false)) {
-        await cancelButton.click();
-        await this.wait(500);
-      } else if (await closeButton.isVisible({ timeout: 1000 }).catch(() => false)) {
-        await closeButton.click();
-        await this.wait(500);
-      } else {
-        // Fallback: press Escape
-        await this.page.keyboard.press('Escape');
-        await this.wait(500);
-      }
-    }
-    
-    // Try pressing Escape as fallback to close any remaining modals
-    await this.page.keyboard.press('Escape');
-    await this.wait(300);
-    
+    await this.closeDialogIfOpen(/Add New Applicant/i);
     await expect(this.applicantsButton).toBeVisible({ timeout: 10000 });
     await this.applicantsButton.click();
-    await this.wait(1000);
+    await expect(this.applicantsHeading).toBeVisible({ timeout: 10000 });
   }
 
   /**
@@ -138,8 +121,17 @@ export class DashboardPage extends BasePage {
   async navigateToInterviews(): Promise<void> {
     await expect(this.interviewsButton).toBeVisible();
     await this.interviewsButton.click();
-    await this.wait(1000);
+    await expect(this.interviewsPageIndicator).toBeVisible({ timeout: 10000 });
   }
+
+  /**
+   * Navigate to Dashboard page
+   */
+  async navigateToDashboard(): Promise<void> {
+    await expect(this.dashboardButton).toBeVisible({ timeout: 10000 });
+    await this.dashboardButton.click();
+  }
+
 
   /**
    * Close notifications popup if visible
@@ -149,9 +141,9 @@ export class DashboardPage extends BasePage {
       const notificationsBtn = this.notificationsButton();
       if (await notificationsBtn.isVisible({ timeout: 2000 })) {
         await notificationsBtn.click();
-        await this.wait(500);
+        await this.page.waitForLoadState('domcontentloaded', { timeout: 2000 }).catch(() => {});
       }
-    } catch (error) {
+    } catch {
       // Notifications button not visible, continue
     }
   }
@@ -204,12 +196,8 @@ export class DashboardPage extends BasePage {
    * Verify dashboard is NOT visible (e.g., after logout)
    */
   async verifyDashboardNotVisible(): Promise<void> {
-    // Check that dashboard-specific elements are not visible
-    const isPostingsVisible = await this.postingsButton.isVisible();
-    const isApplicantsVisible = await this.applicantsButton.isVisible();
-    
-    expect(isPostingsVisible).toBe(false);
-    expect(isApplicantsVisible).toBe(false);
+    await expect(this.postingsButton).toBeHidden({ timeout: 5000 });
+    await expect(this.applicantsButton).toBeHidden({ timeout: 5000 });
   }
 
   /**
@@ -217,59 +205,38 @@ export class DashboardPage extends BasePage {
    * CRITICAL: The dropdown closes when mouse moves away, so we must click profile then immediately click logout
    */
   async logout(): Promise<void> {
-    // Wait for any toasts/notifications to settle
-    await this.wait(1000);
-    
-    // Step 1: Click the profile button to open dropdown
+    await expect(this.profileButton).toBeVisible({ timeout: 5000 });
     await this.profileButton.click();
-    
-    // Step 2: Wait for dropdown to appear and immediately click Logout button
-    // The dropdown contains: Profile, Support, Logout (in that order)
-    // We need to click the Logout button (last button in dropdown) without moving mouse away
-    
+
     try {
-      // Wait for ANY Logout button to appear (dropdown or otherwise)
-      await this.page.waitForSelector('button:has-text("Logout")', { 
-        state: 'visible',
-        timeout: 2000 
-      });
-      
-      // Get all visible Logout buttons and click the LAST one (the one in dropdown)
-      await this.page.locator('button').filter({ hasText: 'Logout' }).last().click({ timeout: 3000 });
-      
-    } catch (error) {
-      // If Playwright can't find it, try direct DOM manipulation
+      await expect(this.logoutDropdownButton).toBeVisible({ timeout: 2000 });
+      await this.logoutDropdownButton.click({ timeout: 3000 });
+    } catch {
+      // Fallback: direct DOM manipulation if Playwright can't interact
       const clicked = await this.page.evaluate(() => {
         const buttons = Array.from(document.querySelectorAll('button'));
-        const logoutButtons = buttons.filter(btn => 
-          btn.textContent?.trim().toLowerCase() === 'logout' &&
-          btn.offsetParent !== null
+        const logoutButtons = buttons.filter(
+          (btn) =>
+            btn.textContent?.trim().toLowerCase() === 'logout' && btn.offsetParent !== null
         );
-        
         if (logoutButtons.length > 0) {
-          const lastBtn = logoutButtons[logoutButtons.length - 1];
-          lastBtn.click();
+          logoutButtons[logoutButtons.length - 1].click();
           return true;
         }
         return false;
       });
-      
       if (!clicked) {
         throw new Error('Logout button in dropdown not found');
       }
     }
-    
-    // Step 3: Wait for confirmation dialog and click the Logout button in it
-    await this.wait(1000);
+
     const logoutConfirmButton = this.page.getByRole('button', { name: 'Logout' });
+    await expect(logoutConfirmButton).toBeVisible({ timeout: 5000 });
     await logoutConfirmButton.click({ timeout: 5000 });
-    
-    // Step 4: Wait for logout to complete
+
     await this.page.waitForURL(
       (url) => !url.pathname.match(/^\/(admin|dashboard)/i),
       { timeout: 15000 }
     );
-    
-    await this.wait(1000);
   }
 }

@@ -54,8 +54,19 @@ export class BasePage {
    * @param ms Milliseconds to wait
    */
   async wait(ms: number): Promise<void> {
-    // Use waitForTimeout only as a last resort - prefer condition-based waits
     await this.page.waitForTimeout(ms);
+  }
+
+  /**
+   * Wait for an element to be visible and ready for interaction (condition-based).
+   * Prefer this over wait(ms) to reduce test execution time.
+   */
+  async waitForElementReady(
+    locator: Locator,
+    timeout: number = testConfig.timeouts.default
+  ): Promise<void> {
+    await expect(locator).toBeVisible({ timeout });
+    await expect(locator).toBeEnabled({ timeout: Math.min(timeout, 5000) }).catch(() => {});
   }
 
   /**
@@ -107,7 +118,7 @@ export class BasePage {
         return locator;
       } catch (error) {
         if (i === retries - 1) throw error;
-        await this.page.waitForTimeout(500);
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
     return locator;
@@ -122,13 +133,13 @@ export class BasePage {
    * @param urlPattern URL pattern to match (string or RegExp)
    * @param timeout Timeout in milliseconds
    * @param statusCode Optional status code to wait for
-   * @param useCache Whether to use cached response (default: true)
+   * @param useCache Whether to use cached response (default: false to avoid cross-test staleness)
    */
   async waitForAPIResponse(
     urlPattern: string | RegExp,
     timeout: number = testConfig.timeouts.networkIdle,
     statusCode?: number,
-    useCache: boolean = true
+    useCache: boolean = false
   ): Promise<void> {
     const patternKey = typeof urlPattern === 'string' ? urlPattern : urlPattern.toString();
     const cacheKey = `${patternKey}_${statusCode ?? 'any'}`;
@@ -199,6 +210,141 @@ export class BasePage {
   }
 
   /**
+   * Click delete on a row and handle confirmation dialog if present.
+   * @param rowLocator Locator for the table row containing the delete button
+   * @param confirmText Optional text to type in confirmation input (e.g. title or identifier)
+   */
+  async deleteRowWithConfirmation(rowLocator: Locator, confirmText?: string): Promise<void> {
+    const deleteButton = rowLocator.getByLabel('Delete').or(rowLocator.getByRole('button', { name: /delete/i }));
+    const isDeleteVisible = await deleteButton.isVisible({ timeout: 2000 }).catch(() => false);
+    if (!isDeleteVisible) {
+      const altDelete = rowLocator.locator('button[aria-label*="delete" i], button[title*="delete" i]').first();
+      if (await altDelete.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await altDelete.click();
+      } else {
+        throw new Error('Delete button not found in row');
+      }
+    } else {
+      await deleteButton.click();
+    }
+    const confirmDialog = this.page.getByRole('dialog').filter({ hasText: /delete|confirm/i });
+    const hasConfirmDialog = await confirmDialog.isVisible({ timeout: 2000 }).catch(() => false);
+    if (hasConfirmDialog) {
+      const confirmInput = confirmDialog.getByRole('textbox').first();
+      if (confirmText && (await confirmInput.isVisible({ timeout: 1000 }).catch(() => false))) {
+        const inputValue = await confirmInput.inputValue().catch(() => '');
+        if (!inputValue) await confirmInput.fill(confirmText);
+      }
+      const confirmButton = confirmDialog.getByRole('button', { name: /delete|confirm|yes/i }).first();
+      if (await confirmButton.isVisible({ timeout: 1000 }).catch(() => false)) {
+        await confirmButton.click();
+      } else {
+        await this.page.keyboard.press('Enter');
+      }
+    }
+    await expect(rowLocator).toBeHidden({ timeout: 10000 }).catch(() => {});
+  }
+
+  /**
+   * Close a dialog/modal if it is open. Tries Cancel, then Close, then Escape.
+   * @param dialogName Optional dialog name (role name, e.g. /Add New Applicant/i). If omitted, closes any visible dialog.
+   * @param timeoutMs Timeout for checking visibility (default 2000)
+   */
+  async closeDialogIfOpen(dialogName?: string | RegExp, timeoutMs: number = 2000): Promise<void> {
+    const dialog = dialogName
+      ? this.page.getByRole('dialog', typeof dialogName === 'string' ? { name: dialogName } : { name: dialogName })
+      : this.page.getByRole('dialog').first();
+    const isOpen = await dialog.isVisible({ timeout: timeoutMs }).catch(() => false);
+    if (!isOpen) return;
+
+    const cancelButton = this.page.getByRole('button', { name: 'Cancel' });
+    const closeButton = this.page.getByRole('button', { name: 'Close' });
+    if (await cancelButton.isVisible({ timeout: 1000 }).catch(() => false)) {
+      await cancelButton.click();
+      await expect(dialog).toBeHidden({ timeout: 5000 }).catch(() => {});
+      return;
+    }
+    if (await closeButton.isVisible({ timeout: 1000 }).catch(() => false)) {
+      await closeButton.click();
+      await expect(dialog).toBeHidden({ timeout: 5000 }).catch(() => {});
+      return;
+    }
+    await this.page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden({ timeout: 3000 }).catch(() => {});
+  }
+
+  /**
+   * Fill a spinbutton (number input) with retry strategies for flaky UIs.
+   * @param spinbuttonLocator Locator for the spinbutton
+   * @param value Value to set
+   */
+  async fillSpinbuttonWithRetry(spinbuttonLocator: Locator, value: string): Promise<void> {
+    await expect(spinbuttonLocator).toBeVisible({ timeout: 10000 });
+    const strategies = [
+      async () => {
+        await spinbuttonLocator.focus();
+        await spinbuttonLocator.clear();
+        await spinbuttonLocator.fill(value);
+        return await spinbuttonLocator.inputValue().catch(() => '');
+      },
+      async () => {
+        await spinbuttonLocator.click();
+        await this.page.keyboard.press('Control+A');
+        await spinbuttonLocator.type(value, { delay: 50 });
+        return await spinbuttonLocator.inputValue().catch(() => '');
+      },
+      async () => {
+        await spinbuttonLocator.focus();
+        await spinbuttonLocator.clear();
+        await this.page.keyboard.type(value, { delay: 100 });
+        return await spinbuttonLocator.inputValue().catch(() => '');
+      },
+      async () => {
+        await spinbuttonLocator.click({ clickCount: 3 });
+        await this.page.keyboard.type(value, { delay: 100 });
+        return await spinbuttonLocator.inputValue().catch(() => '');
+      },
+    ];
+    for (let i = 0; i < strategies.length; i++) {
+      try {
+        const result = await strategies[i]();
+        if (result != null && result !== '') return;
+      } catch {
+        if (i === strategies.length - 1) {
+          throw new Error(`Failed to fill spinbutton with "${value}" after ${strategies.length} strategies.`);
+        }
+      }
+    }
+    throw new Error(`Failed to fill spinbutton with "${value}". Field remained empty.`);
+  }
+
+  /**
+   * Wait until at least one of the indicator checks returns true (for form ready, step loaded, etc.).
+   * @param indicators Array of async functions that return true when the condition is met
+   * @param options maxRetries and retryDelayMs
+   * @returns true when one indicator succeeded
+   */
+  async waitForFormFieldsReady(
+    indicators: Array<() => Promise<boolean>>,
+    options: { maxRetries?: number; retryDelayMs?: number } = {}
+  ): Promise<boolean> {
+    const { maxRetries = 8, retryDelayMs = 2000 } = options;
+    for (let retry = 0; retry < maxRetries; retry++) {
+      for (const check of indicators) {
+        try {
+          if (await check()) return true;
+        } catch {
+          continue;
+        }
+      }
+      if (retry < maxRetries - 1) {
+        await this.page.waitForLoadState('domcontentloaded', { timeout: retryDelayMs }).catch(() => {});
+      }
+    }
+    return false;
+  }
+
+  /**
    * Create a resilient element wrapper for better interactions
    * @param selector Element selector or locator
    * @param timeout Optional timeout override
@@ -244,8 +390,8 @@ export class BasePage {
         }
       }
     } else {
-      // Wait for upload to complete (check for any loading indicator to disappear)
-      await this.page.waitForTimeout(500); // Minimal wait for file processing
+      // Minimal wait for file processing (no DOM indicator available)
+      await this.page.waitForLoadState('domcontentloaded', { timeout: 2000 }).catch(() => {});
     }
   }
 

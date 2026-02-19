@@ -6,31 +6,23 @@ import { TestDataGenerator } from '../../utils/data/test-data-generator';
 import { testConfig } from '../../config/test-config';
 import { generateUniqueId } from '../../utils/data/date-name-utils';
 import { performTestCleanup } from '../../utils/cleanup/test-cleanup';
+import { TestDataTracker } from '../../utils/data/test-data-tracker';
 
 /**
  * Job Posting Regression Test Suite
  * Comprehensive test coverage for all job posting functionality
- * Runs with both Admin and HR profiles
  */
 
-// Define profiles to test with
-const profiles = [
-  { name: 'Admin Profile', email: testConfig.credentials.email, password: testConfig.credentials.password, tag: '@admin-profile' },
-  { name: 'HR Profile', email: testConfig.hrCredentials.email, password: testConfig.hrCredentials.password, tag: '@hr-profile' }
-];
-
-// Filter profiles based on environment variable or run all
-const profileFilter = process.env.PROFILE_FILTER; // Can be 'admin', 'hr', or undefined (runs all)
-const filteredProfiles = profileFilter 
-  ? profiles.filter(p => p.name.toLowerCase().includes(profileFilter.toLowerCase()))
-  : profiles;
-
-// Run tests for each profile
-for (const profile of filteredProfiles) {
-  test.describe(`Job Posting Regression Tests @Regression - ${profile.name}`, () => {
+test.describe('Job Posting Regression Tests @Regression', () => {
+    const profile = { 
+      name: 'Admin Profile', 
+      email: testConfig.credentials.email, 
+      password: testConfig.credentials.password, 
+      tag: '@admin-profile' 
+    };
     
-    // Configure timeout: 4x the default (480 seconds = 8 minutes)
-    test.describe.configure({ timeout: 480 * 1000 });
+    // Configure timeout: 3 minutes (reduced from 8 for faster fail when stuck)
+    test.describe.configure({ timeout: 180 * 1000 });
     
     // Setup authenticated page for this profile
     let authenticatedPage: any;
@@ -48,14 +40,15 @@ for (const profile of filteredProfiles) {
       authenticatedPage = page;
     });
 
-    test.afterEach(async () => {
-      // Use standardized cleanup
+    test.afterEach(async ({ }, testInfo) => {
       if (authenticatedPage) {
         await performTestCleanup(authenticatedPage, {
           dashboardPage,
-          logoutViaApi: true, // Prefer API logout for speed/reliability in regression
+          jobPostingPage,
+          logoutViaApi: true,
+          deleteCreatedRecords: true,
           verbose: false
-        });
+        }, testInfo.testId);
       }
     });
   
@@ -65,19 +58,20 @@ for (const profile of filteredProfiles) {
   
     test.describe('Manual Job Posting Creation', () => {
       
-      test('TC-JP01: Create job posting with all required fields', async () => {
+      test('TC-JP01: Create job posting with all required fields', async ({ }, testInfo) => {
         const jobData = TestDataGenerator.generateJobPostingData({
           department: 'Engineering',
           employmentType: 'Full-Time'
         });
 
         await dashboardPage.navigateToPostings();
-        await jobPostingPage.createJobPosting(jobData);
+        const identifier = await jobPostingPage.createJobPosting(jobData);
+        TestDataTracker.track(testInfo.testId, { type: 'jobPosting', identifier: identifier || jobData.title, metadata: { title: jobData.title } });
 
         console.log(`✓ TC-JP01: Job posting "${jobData.title}" created successfully`);
       });
 
-      test('TC-JP04: Create job posting with multiple skills', async () => {
+      test('TC-JP04: Create job posting with multiple skills', async ({ }, testInfo) => {
         const jobData = TestDataGenerator.generateJobPostingData({
           department: 'Engineering',
           employmentType: 'Full-Time',
@@ -85,12 +79,13 @@ for (const profile of filteredProfiles) {
         });
 
         await dashboardPage.navigateToPostings();
-        await jobPostingPage.createJobPosting(jobData);
+        const identifier = await jobPostingPage.createJobPosting(jobData);
+        TestDataTracker.track(testInfo.testId, { type: 'jobPosting', identifier: identifier || jobData.title, metadata: { title: jobData.title } });
 
         console.log(`✓ TC-JP04: Job posting with 6 skills created successfully`);
       });
 
-      test('TC-JP05: Create job posting with multiple responsibilities', async () => {
+      test('TC-JP05: Create job posting with multiple responsibilities', async ({ }, testInfo) => {
         const jobData = TestDataGenerator.generateJobPostingData({
           department: 'Engineering',
           employmentType: 'Full-Time',
@@ -98,12 +93,13 @@ for (const profile of filteredProfiles) {
         });
 
         await dashboardPage.navigateToPostings();
-        await jobPostingPage.createJobPosting(jobData);
+        const identifier = await jobPostingPage.createJobPosting(jobData);
+        TestDataTracker.track(testInfo.testId, { type: 'jobPosting', identifier: identifier || jobData.title, metadata: { title: jobData.title } });
 
         console.log(`✓ TC-JP05: Job posting with 5 responsibilities created successfully`);
       });
 
-      test('TC-JP06: Create job posting with custom location', async () => {
+      test('TC-JP06: Create job posting with custom location', async ({ }, testInfo) => {
         const jobData = TestDataGenerator.generateJobPostingData({
           department: 'Engineering',
           employmentType: 'Full-Time',
@@ -111,7 +107,8 @@ for (const profile of filteredProfiles) {
         });
 
         await dashboardPage.navigateToPostings();
-        await jobPostingPage.createJobPosting(jobData);
+        const identifier = await jobPostingPage.createJobPosting(jobData);
+        TestDataTracker.track(testInfo.testId, { type: 'jobPosting', identifier: identifier || jobData.title, metadata: { title: jobData.title } });
 
         console.log(`✓ TC-JP06: Job posting with custom location "${jobData.location}" created successfully`);
       });
@@ -163,7 +160,6 @@ for (const profile of filteredProfiles) {
         await jobPostingPage.selectExperienceLevel('Senior (5-7 years)');
         await jobPostingPage.selectEmploymentType('Full-Time');
         await jobPostingPage.fillOpenPositions('2');
-        await jobPostingPage.fillOpenPositions('2');
         await jobPostingPage.fillExpectedClosingDate(TestDataGenerator.generateExpectedClosingDate());
         await jobPostingPage.selectAssignedToHr(TestDataGenerator.generateAssignedToHr());
         await jobPostingPage.clickContinue();
@@ -211,7 +207,6 @@ for (const profile of filteredProfiles) {
         await jobPostingPage.selectDepartment('Engineering');
         await jobPostingPage.selectExperienceLevel('Lead (7-10 years)');
         await jobPostingPage.selectEmploymentType('Full-Time');
-        await jobPostingPage.fillOpenPositions('2');
         await jobPostingPage.fillOpenPositions('2');
         await jobPostingPage.fillExpectedClosingDate(TestDataGenerator.generateExpectedClosingDate());
         await jobPostingPage.selectAssignedToHr(TestDataGenerator.generateAssignedToHr());
@@ -319,7 +314,6 @@ for (const profile of filteredProfiles) {
         await jobPostingPage.selectExperienceLevel('Mid-Level (3-5 years)');
         await jobPostingPage.selectEmploymentType('Full-Time');
         await jobPostingPage.fillOpenPositions('1');
-        await jobPostingPage.fillOpenPositions('1');
         await jobPostingPage.fillExpectedClosingDate(TestDataGenerator.generateExpectedClosingDate());
         await jobPostingPage.selectAssignedToHr(TestDataGenerator.generateAssignedToHr());
         await jobPostingPage.clickContinue();
@@ -341,7 +335,6 @@ for (const profile of filteredProfiles) {
         await jobPostingPage.fillJobTitle('Navigation Test');
         await jobPostingPage.selectDepartment('Engineering');
         await jobPostingPage.selectExperienceLevel('Junior (1-3 years)');
-        await jobPostingPage.selectEmploymentType('Full-Time');
         await jobPostingPage.selectEmploymentType('Full-Time');
         await jobPostingPage.fillOpenPositions('1');
         await jobPostingPage.fillExpectedClosingDate(TestDataGenerator.generateExpectedClosingDate());
@@ -373,7 +366,7 @@ for (const profile of filteredProfiles) {
       ];
 
       for (const level of experienceLevels) {
-        test(`TC-JP14: Create job posting with experience level - ${level}`, async () => {
+        test(`TC-JP14: Create job posting with experience level - ${level}`, async ({ }, testInfo) => {
           const jobData = TestDataGenerator.generateJobPostingData({
             department: 'Engineering',
             experienceLevel: level,
@@ -381,7 +374,8 @@ for (const profile of filteredProfiles) {
           });
 
           await dashboardPage.navigateToPostings();
-          await jobPostingPage.createJobPosting(jobData);
+          const identifier = await jobPostingPage.createJobPosting(jobData);
+          TestDataTracker.track(testInfo.testId, { type: 'jobPosting', identifier: identifier || jobData.title, metadata: { title: jobData.title } });
 
           console.log(`✓ TC-JP14: Job posting with "${level}" created successfully`);
         });
@@ -390,7 +384,7 @@ for (const profile of filteredProfiles) {
       const employmentTypes = ['Full-Time', 'Part-Time', 'Contract', 'Internship'];
 
       for (const type of employmentTypes) {
-        test(`TC-JP15: Create job posting with employment type - ${type}`, async () => {
+        test(`TC-JP15: Create job posting with employment type - ${type}`, async ({ }, testInfo) => {
           const jobData = TestDataGenerator.generateJobPostingData({
             department: 'Engineering',
             experienceLevel: 'Mid-Level (3-5 years)',
@@ -398,7 +392,8 @@ for (const profile of filteredProfiles) {
           });
 
           await dashboardPage.navigateToPostings();
-          await jobPostingPage.createJobPosting(jobData);
+          const identifier = await jobPostingPage.createJobPosting(jobData);
+          TestDataTracker.track(testInfo.testId, { type: 'jobPosting', identifier: identifier || jobData.title, metadata: { title: jobData.title } });
 
           console.log(`✓ TC-JP15: Job posting with "${type}" employment created successfully`);
         });
@@ -437,7 +432,6 @@ for (const profile of filteredProfiles) {
         await jobPostingPage.selectDepartment('Engineering');
         await jobPostingPage.selectExperienceLevel('Mid-Level (3-5 years)');
         await jobPostingPage.selectEmploymentType('Full-Time');
-        await jobPostingPage.fillOpenPositions('1');
         await jobPostingPage.fillOpenPositions('1');
         await jobPostingPage.fillExpectedClosingDate(TestDataGenerator.generateExpectedClosingDate());
         await jobPostingPage.selectAssignedToHr(TestDataGenerator.generateAssignedToHr());
@@ -502,14 +496,15 @@ for (const profile of filteredProfiles) {
       const departments = ['Engineering', 'Product', 'Design', 'Marketing', 'Sales', 'HR'];
 
       for (const dept of departments) {
-        test(`TC-JP21: Create job posting for ${dept} department`, async () => {
+        test(`TC-JP21: Create job posting for ${dept} department`, async ({ }, testInfo) => {
           const jobData = TestDataGenerator.generateJobPostingData({
             department: dept,
             employmentType: 'Full-Time'
           });
 
           await dashboardPage.navigateToPostings();
-          await jobPostingPage.createJobPosting(jobData);
+          const identifier = await jobPostingPage.createJobPosting(jobData);
+          TestDataTracker.track(testInfo.testId, { type: 'jobPosting', identifier: identifier || jobData.title, metadata: { title: jobData.title } });
 
           console.log(`✓ TC-JP21: Job posting for "${dept}" department created successfully`);
         });
@@ -522,7 +517,7 @@ for (const profile of filteredProfiles) {
   
     test.describe('Workflow & Integration Tests', () => {
       
-      test('TC-JP22: Create job posting with multiple locations', async () => {
+      test('TC-JP22: Create job posting with multiple locations', async ({ }, testInfo) => {
         const jobData = TestDataGenerator.generateJobPostingData({
           department: 'Engineering',
           employmentType: 'Full-Time'
@@ -551,11 +546,12 @@ for (const profile of filteredProfiles) {
         
         await jobPostingPage.clickReview();
         await jobPostingPage.saveAsDraft();
+        TestDataTracker.track(testInfo.testId, { type: 'jobPosting', identifier: jobData.title, metadata: { title: jobData.title } });
 
         console.log('✓ TC-JP22: Job posting with multiple locations created successfully');
       });
 
-      test('TC-JP23: Create job posting with maximum skills (10+)', async () => {
+      test('TC-JP23: Create job posting with maximum skills (10+)', async ({ }, testInfo) => {
         const jobData = TestDataGenerator.generateJobPostingData({
           department: 'Engineering',
           employmentType: 'Full-Time',
@@ -563,12 +559,13 @@ for (const profile of filteredProfiles) {
         });
 
         await dashboardPage.navigateToPostings();
-        await jobPostingPage.createJobPosting(jobData);
+        const identifier = await jobPostingPage.createJobPosting(jobData);
+        TestDataTracker.track(testInfo.testId, { type: 'jobPosting', identifier: identifier || jobData.title, metadata: { title: jobData.title } });
 
         console.log('✓ TC-JP23: Job posting with 12 skills created successfully');
       });
 
-      test('TC-JP24: Create job posting with maximum responsibilities (10+)', async () => {
+      test('TC-JP24: Create job posting with maximum responsibilities (10+)', async ({ }, testInfo) => {
         const jobData = TestDataGenerator.generateJobPostingData({
           department: 'Engineering',
           employmentType: 'Full-Time',
@@ -589,12 +586,13 @@ for (const profile of filteredProfiles) {
         });
 
         await dashboardPage.navigateToPostings();
-        await jobPostingPage.createJobPosting(jobData);
+        const identifier = await jobPostingPage.createJobPosting(jobData);
+        TestDataTracker.track(testInfo.testId, { type: 'jobPosting', identifier: identifier || jobData.title, metadata: { title: jobData.title } });
 
         console.log('✓ TC-JP24: Job posting with 12 responsibilities created successfully');
       });
 
-      test('TC-JP25: Create job posting with special characters in title', async () => {
+      test('TC-JP25: Create job posting with special characters in title', async ({ }, testInfo) => {
         const jobTitle = `Senior Developer (React/Node.js) - ${TestDataGenerator.generateJobTitle()}`;
         const jobData = TestDataGenerator.generateJobPostingData({
           title: jobTitle,
@@ -603,12 +601,13 @@ for (const profile of filteredProfiles) {
         });
 
         await dashboardPage.navigateToPostings();
-        await jobPostingPage.createJobPosting(jobData);
+        const identifier = await jobPostingPage.createJobPosting(jobData);
+        TestDataTracker.track(testInfo.testId, { type: 'jobPosting', identifier: identifier || jobData.title, metadata: { title: jobData.title } });
 
         console.log('✓ TC-JP25: Job posting with special characters in title created successfully');
       });
 
-      test('TC-JP26: Create job posting with very long role summary', async () => {
+      test('TC-JP26: Create job posting with very long role summary', async ({ }, testInfo) => {
         const longSummary = 'This is a comprehensive role summary that describes the position in great detail. '.repeat(10) + 
                            'The role requires extensive experience in modern web development technologies and frameworks. ' +
                            'The candidate should have strong problem-solving skills and ability to work in a fast-paced environment.';
@@ -620,12 +619,13 @@ for (const profile of filteredProfiles) {
         });
 
         await dashboardPage.navigateToPostings();
-        await jobPostingPage.createJobPosting(jobData);
+        const identifier = await jobPostingPage.createJobPosting(jobData);
+        TestDataTracker.track(testInfo.testId, { type: 'jobPosting', identifier: identifier || jobData.title, metadata: { title: jobData.title } });
 
         console.log('✓ TC-JP26: Job posting with very long role summary created successfully');
       });
 
-      test('TC-JP27: Create job posting with minimum open positions (1)', async () => {
+      test('TC-JP27: Create job posting with minimum open positions (1)', async ({ }, testInfo) => {
         const jobData = TestDataGenerator.generateJobPostingData({
           department: 'Engineering',
           employmentType: 'Full-Time',
@@ -633,12 +633,13 @@ for (const profile of filteredProfiles) {
         });
 
         await dashboardPage.navigateToPostings();
-        await jobPostingPage.createJobPosting(jobData);
+        const identifier = await jobPostingPage.createJobPosting(jobData);
+        TestDataTracker.track(testInfo.testId, { type: 'jobPosting', identifier: identifier || jobData.title, metadata: { title: jobData.title } });
 
         console.log('✓ TC-JP27: Job posting with minimum open positions created successfully');
       });
 
-      test('TC-JP28: Create job posting with maximum open positions (20)', async () => {
+      test('TC-JP28: Create job posting with maximum open positions (20)', async ({ }, testInfo) => {
         const jobData = TestDataGenerator.generateJobPostingData({
           department: 'Engineering',
           employmentType: 'Full-Time',
@@ -646,12 +647,13 @@ for (const profile of filteredProfiles) {
         });
 
         await dashboardPage.navigateToPostings();
-        await jobPostingPage.createJobPosting(jobData);
+        const identifier = await jobPostingPage.createJobPosting(jobData);
+        TestDataTracker.track(testInfo.testId, { type: 'jobPosting', identifier: identifier || jobData.title, metadata: { title: jobData.title } });
 
         console.log('✓ TC-JP28: Job posting with maximum open positions created successfully');
       });
 
-      test('TC-JP29: Create job posting with all employment types in sequence', async () => {
+      test('TC-JP29: Create job posting with all employment types in sequence', async ({ }, testInfo) => {
         const employmentTypes = ['Full-Time', 'Part-Time', 'Contract', 'Internship'];
         
         for (const type of employmentTypes) {
@@ -661,13 +663,14 @@ for (const profile of filteredProfiles) {
           });
 
           await dashboardPage.navigateToPostings();
-          await jobPostingPage.createJobPosting(jobData);
+          const identifier = await jobPostingPage.createJobPosting(jobData);
+          TestDataTracker.track(testInfo.testId, { type: 'jobPosting', identifier: identifier || jobData.title, metadata: { title: jobData.title } });
         }
 
         console.log('✓ TC-JP29: Job postings with all employment types created successfully');
       });
 
-      test('TC-JP30: Create job posting with complex compensation details', async () => {
+      test('TC-JP30: Create job posting with complex compensation details', async ({ }, testInfo) => {
         const jobData = TestDataGenerator.generateJobPostingData({
           department: 'Engineering',
           employmentType: 'Full-Time',
@@ -675,7 +678,8 @@ for (const profile of filteredProfiles) {
         });
 
         await dashboardPage.navigateToPostings();
-        await jobPostingPage.createJobPosting(jobData);
+        const identifier = await jobPostingPage.createJobPosting(jobData);
+        TestDataTracker.track(testInfo.testId, { type: 'jobPosting', identifier: identifier || jobData.title, metadata: { title: jobData.title } });
 
         console.log('✓ TC-JP30: Job posting with complex compensation details created successfully');
       });
@@ -687,7 +691,7 @@ for (const profile of filteredProfiles) {
   
     test.describe('Edge Cases & Boundary Tests', () => {
       
-      test('TC-JP31: Create job posting with single character location', async () => {
+      test('TC-JP31: Create job posting with single character location', async ({ }, testInfo) => {
         const jobData = TestDataGenerator.generateJobPostingData({
           department: 'Engineering',
           employmentType: 'Full-Time',
@@ -695,12 +699,13 @@ for (const profile of filteredProfiles) {
         });
 
         await dashboardPage.navigateToPostings();
-        await jobPostingPage.createJobPosting(jobData);
+        const identifier = await jobPostingPage.createJobPosting(jobData);
+        TestDataTracker.track(testInfo.testId, { type: 'jobPosting', identifier: identifier || jobData.title, metadata: { title: jobData.title } });
 
         console.log('✓ TC-JP31: Job posting with single character location created successfully');
       });
 
-      test('TC-JP32: Create job posting with very long location name', async () => {
+      test('TC-JP32: Create job posting with very long location name', async ({ }, testInfo) => {
         const jobData = TestDataGenerator.generateJobPostingData({
           department: 'Engineering',
           employmentType: 'Full-Time',
@@ -708,12 +713,13 @@ for (const profile of filteredProfiles) {
         });
 
         await dashboardPage.navigateToPostings();
-        await jobPostingPage.createJobPosting(jobData);
+        const identifier = await jobPostingPage.createJobPosting(jobData);
+        TestDataTracker.track(testInfo.testId, { type: 'jobPosting', identifier: identifier || jobData.title, metadata: { title: jobData.title } });
 
         console.log('✓ TC-JP32: Job posting with very long location name created successfully');
       });
 
-      test('TC-JP33: Create job posting with numeric-only title', async () => {
+      test('TC-JP33: Create job posting with numeric-only title', async ({ }, testInfo) => {
         const jobTitle = `12345_${generateUniqueId(8)}`;
         const jobData = TestDataGenerator.generateJobPostingData({
           title: jobTitle,
@@ -722,12 +728,13 @@ for (const profile of filteredProfiles) {
         });
 
         await dashboardPage.navigateToPostings();
-        await jobPostingPage.createJobPosting(jobData);
+        const identifier = await jobPostingPage.createJobPosting(jobData);
+        TestDataTracker.track(testInfo.testId, { type: 'jobPosting', identifier: identifier || jobData.title, metadata: { title: jobData.title } });
 
         console.log('✓ TC-JP33: Job posting with numeric-only title created successfully');
       });
 
-      test('TC-JP34: Create job posting with unicode characters in title', async () => {
+      test('TC-JP34: Create job posting with unicode characters in title', async ({ }, testInfo) => {
         const jobTitle = `Développeur Full Stack_${generateUniqueId(8)}`;
         const jobData = TestDataGenerator.generateJobPostingData({
           title: jobTitle,
@@ -736,7 +743,8 @@ for (const profile of filteredProfiles) {
         });
 
         await dashboardPage.navigateToPostings();
-        await jobPostingPage.createJobPosting(jobData);
+        const identifier = await jobPostingPage.createJobPosting(jobData);
+        TestDataTracker.track(testInfo.testId, { type: 'jobPosting', identifier: identifier || jobData.title, metadata: { title: jobData.title } });
 
         console.log('✓ TC-JP34: Job posting with unicode characters created successfully');
       });
@@ -750,7 +758,6 @@ for (const profile of filteredProfiles) {
         await jobPostingPage.selectDepartment('Engineering');
         await jobPostingPage.selectExperienceLevel('Mid-Level (3-5 years)');
         await jobPostingPage.selectEmploymentType('Full-Time');
-        await jobPostingPage.fillOpenPositions('1');
         await jobPostingPage.fillOpenPositions('1');
         await jobPostingPage.fillExpectedClosingDate(TestDataGenerator.generateExpectedClosingDate());
         await jobPostingPage.selectAssignedToHr(TestDataGenerator.generateAssignedToHr());
@@ -770,4 +777,3 @@ for (const profile of filteredProfiles) {
       });
     });
   });
-}

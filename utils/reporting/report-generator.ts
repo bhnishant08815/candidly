@@ -1,6 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
+
+const fsp = fs.promises;
 import { FullConfig, FullResult, Suite, TestCase, TestResult } from '@playwright/test/reporter';
+import { performanceMonitor } from './performance-monitor';
 
 interface TestSummary {
   title: string;
@@ -54,8 +57,7 @@ export class ClientReportGenerator {
       this.outputDir = 'client-reports';
     }
     this.screenshotsDir = path.join(this.outputDir, 'screenshots');
-    this.ensureDirectories();
-    
+
     this.reportData = {
       title: 'Test Execution Report',
       timestamp: new Date().toISOString(),
@@ -73,16 +75,13 @@ export class ClientReportGenerator {
     };
   }
 
-  private ensureDirectories(): void {
-    if (!fs.existsSync(this.outputDir)) {
-      fs.mkdirSync(this.outputDir, { recursive: true });
-    }
-    if (!fs.existsSync(this.screenshotsDir)) {
-      fs.mkdirSync(this.screenshotsDir, { recursive: true });
-    }
+  private async ensureDirectories(): Promise<void> {
+    await fsp.mkdir(this.outputDir, { recursive: true });
+    await fsp.mkdir(this.screenshotsDir, { recursive: true });
   }
 
-  onBegin(config: FullConfig, suite: Suite): void {
+  async onBegin(config: FullConfig, suite: Suite): Promise<void> {
+    await this.ensureDirectories();
     this.reportData.title = `Test Execution Report - ${new Date().toLocaleDateString()}`;
   }
 
@@ -114,6 +113,8 @@ export class ClientReportGenerator {
 
     this.testResults.get(suiteTitle)!.push(testSummary);
 
+    performanceMonitor.recordTest(test, result);
+
     // Update counters
     this.reportData.totalTests++;
     if (result.status === 'passed') this.reportData.passed++;
@@ -121,11 +122,12 @@ export class ClientReportGenerator {
     else if (result.status === 'skipped') this.reportData.skipped++;
   }
 
-  onEnd(result: FullResult): void {
+  async onEnd(result: FullResult): Promise<void> {
     this.reportData.duration = result.duration;
     this.processSuites();
-    this.generateHTMLReport();
-    this.copyScreenshots();
+    await this.generateHTMLReport();
+    await this.copyScreenshots();
+    await performanceMonitor.saveReport();
   }
 
   private getSuiteTitle(test: TestCase): string {
@@ -154,41 +156,59 @@ export class ClientReportGenerator {
     }
   }
 
-  private copyScreenshots(): void {
-    // Copy screenshots from test-results to client-reports/screenshots
+  private async copyScreenshots(): Promise<void> {
+    const failedStatuses = ['failed' as const, 'timedOut' as const];
     const testResultsDir = path.join(process.cwd(), 'test-results');
-    if (fs.existsSync(testResultsDir)) {
-      this.copyDirectory(testResultsDir, this.screenshotsDir);
-    }
-  }
 
-  private copyDirectory(src: string, dest: string): void {
-    if (!fs.existsSync(dest)) {
-      fs.mkdirSync(dest, { recursive: true });
-    }
+    for (const [, tests] of this.testResults) {
+      for (const test of tests) {
+        if (!failedStatuses.includes(test.status)) continue;
 
-    const entries = fs.readdirSync(src, { withFileTypes: true });
-    for (const entry of entries) {
-      const srcPath = path.join(src, entry.name);
-      const destPath = path.join(dest, entry.name);
+        const allPaths: Array<{ path: string; update: (dest: string) => void }> = [];
+        test.screenshots.forEach((p, idx) =>
+          allPaths.push({ path: p, update: (dest) => { test.screenshots[idx] = dest; } })
+        );
+        if (test.video) {
+          allPaths.push({ path: test.video, update: (dest) => { test.video = dest; } });
+        }
 
-      if (entry.isDirectory()) {
-        this.copyDirectory(srcPath, destPath);
-      } else if (entry.name.endsWith('.png') || entry.name.endsWith('.webm')) {
-        fs.copyFileSync(srcPath, destPath);
+        for (const { path: srcPath, update } of allPaths) {
+          try {
+            const resolvedSrc = path.isAbsolute(srcPath) ? srcPath : path.join(process.cwd(), srcPath);
+            await fsp.access(resolvedSrc);
+            const relativePath = path.relative(testResultsDir, resolvedSrc);
+            const destPath = path.join(this.screenshotsDir, relativePath);
+            await fsp.mkdir(path.dirname(destPath), { recursive: true });
+            await fsp.copyFile(resolvedSrc, destPath);
+            update(destPath);
+          } catch {
+            // File not found or copy failed, skip
+          }
+        }
       }
     }
   }
 
-  private generateHTMLReport(): void {
+  private async copyDirectory(src: string, dest: string): Promise<void> {
+    await fsp.mkdir(dest, { recursive: true });
+    const entries = await fsp.readdir(src, { withFileTypes: true });
+    for (const entry of entries) {
+      const srcPath = path.join(src, entry.name);
+      const destPath = path.join(dest, entry.name);
+      if (entry.isDirectory()) {
+        await this.copyDirectory(srcPath, destPath);
+      } else if (entry.name.endsWith('.png') || entry.name.endsWith('.webm')) {
+        await fsp.copyFile(srcPath, destPath);
+      }
+    }
+  }
+
+  private async generateHTMLReport(): Promise<void> {
     const html = this.generateHTML();
     const reportPath = path.join(this.outputDir, `test-report-${Date.now()}.html`);
-    fs.writeFileSync(reportPath, html);
-    
-    // Also create a latest.html for easy access
+    await fsp.writeFile(reportPath, html);
     const latestPath = path.join(this.outputDir, 'latest-report.html');
-    fs.writeFileSync(latestPath, html);
-    
+    await fsp.writeFile(latestPath, html);
     console.log(`\n📊 Client report generated: ${reportPath}`);
     console.log(`📊 Latest report: ${latestPath}`);
   }

@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Execution Report - 12/2/2026</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .header .subtitle {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .stat-card.passed {
+            border-left: 5px solid #10b981;
+        }
+        
+        .stat-card.failed {
+            border-left: 5px solid #ef4444;
+        }
+        
+        .stat-card.skipped {
+            border-left: 5px solid #f59e0b;
+        }
+        
+        .stat-card.total {
+            border-left: 5px solid #6366f1;
+        }
+        
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .stat-card.passed .stat-value {
+            color: #10b981;
+        }
+        
+        .stat-card.failed .stat-value {
+            color: #ef4444;
+        }
+        
+        .stat-card.skipped .stat-value {
+            color: #f59e0b;
+        }
+        
+        .stat-card.total .stat-value {
+            color: #6366f1;
+        }
+        
+        .pass-rate {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            font-size: 1.5em;
+            font-weight: 600;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .suite {
+            margin-bottom: 30px;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        .suite-header {
+            background: #f9fafb;
+            padding: 20px;
+            border-bottom: 2px solid #e5e7eb;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s;
+        }
+        
+        .suite-header:hover {
+            background: #f3f4f6;
+        }
+        
+        .suite-header h2 {
+            font-size: 1.3em;
+            color: #1f2937;
+        }
+        
+        .suite-stats {
+            display: flex;
+            gap: 15px;
+            font-size: 0.9em;
+        }
+        
+        .suite-stats span {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+        
+        .suite-stats .passed {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .suite-stats .failed {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .suite-stats .skipped {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .suite-content {
+            display: none;
+            padding: 20px;
+        }
+        
+        .suite-content.expanded {
+            display: block;
+        }
+        
+        .test-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border-left: 4px solid;
+            background: #f9fafb;
+        }
+        
+        .test-item.passed {
+            border-left-color: #10b981;
+        }
+        
+        .test-item.failed {
+            border-left-color: #ef4444;
+            background: #fef2f2;
+        }
+        
+        .test-item.skipped {
+            border-left-color: #f59e0b;
+        }
+        
+        .test-item.timedOut {
+            border-left-color: #ef4444;
+            background: #fef2f2;
+        }
+        
+        .test-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .test-title {
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .test-duration {
+            color: #6b7280;
+            font-size: 0.9em;
+        }
+        
+        .test-error {
+            background: #fee2e2;
+            border: 1px solid #fecaca;
+            border-radius: 6px;
+            padding: 12px;
+            margin-top: 10px;
+            color: #991b1b;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            white-space: pre-wrap;
+        }
+        
+        .screenshots {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .screenshot {
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+            max-width: 300px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .screenshot:hover {
+            transform: scale(1.05);
+            border-color: #667eea;
+        }
+        
+        .screenshot img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        .screenshot-label {
+            padding: 5px;
+            background: #f3f4f6;
+            text-align: center;
+            font-size: 0.8em;
+            color: #6b7280;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            max-width: 90%;
+            max-height: 90%;
+        }
+        
+        .modal-content img {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 8px;
+        }
+        
+        .close-modal {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: white;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .footer {
+            padding: 20px;
+            text-align: center;
+            background: #f9fafb;
+            color: #6b7280;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .environment-info {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+        
+        @media (max-width: 768px) {
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .header h1 {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 Test Execution Report</h1>
+            <div class="subtitle">12/2/2026, 6:49:22 pm</div>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card total">
+                <div class="stat-value">24</div>
+                <div class="stat-label">Total Tests</div>
+            </div>
+            <div class="stat-card passed">
+                <div class="stat-value">20</div>
+                <div class="stat-label">Passed</div>
+            </div>
+            <div class="stat-card failed">
+                <div class="stat-value">4</div>
+                <div class="stat-label">Failed</div>
+            </div>
+            <div class="stat-card skipped">
+                <div class="stat-value">0</div>
+                <div class="stat-label">Skipped</div>
+            </div>
+        </div>
+        
+        <div class="pass-rate">
+            Pass Rate: 83.3%
+        </div>
+        
+        <div class="content">
+            
+        <div class="suite">
+          <div class="suite-header">
+            <h2>chromium &gt; login\login.spec.ts &gt; Login Automation &gt; General Login Tests</h2>
+            <div class="suite-stats">
+              <span class="passed">✓ 4</span>
+              <span class="failed">✗ 0</span>
+              <span class="skipped">⊘ 0</span>
+            </div>
+          </div>
+          <div class="suite-content">
+            
+          <div class="test-item passed">
+            <div class="test-header">
+              <div class="test-title">TC-004: should validate required fields</div>
+              <div class="test-duration">3.87s</div>
+            </div>
+            
+            
+          </div>
+          <div class="test-item passed">
+            <div class="test-header">
+              <div class="test-title">TC-002: should display error message for invalid email</div>
+              <div class="test-duration">4.02s</div>
+            </div>
+            
+            
+          </div>
+          <div class="test-item passed">
+            <div class="test-header">
+              <div class="test-title">TC-003: should display error message for invalid password</div>
+              <div class="test-duration">5.20s</div>
+            </div>
+            
+            
+          </div>
+          <div class="test-item passed">
+            <div class="test-header">
+              <div class="test-title">TC-005: should navigate to login page correctly</div>
+              <div class="test-duration">1.81s</div>
+            </div>
+            
+            
+          </div>
+          </div>
+        </div>
+        <div class="suite">
+          <div class="suite-header">
+            <h2>chromium &gt; login\login.spec.ts &gt; Login Automation</h2>
+            <div class="suite-stats">
+              <span class="passed">✓ 3</span>
+              <span class="failed">✗ 0</span>
+              <span class="skipped">⊘ 0</span>
+            </div>
+          </div>
+          <div class="suite-content">
+            
+          <div class="test-item passed">
+            <div class="test-header">
+              <div class="test-title">TC-007-alt: should logout successfully</div>
+              <div class="test-duration">5.76s</div>
+            </div>
+            
+            
+          </div>
+          <div class="test-item passed">
+            <div class="test-header">
+              <div class="test-title">TC-001: should login successfully with valid credentials</div>
+              <div class="test-duration">7.18s</div>
+            </div>
+            
+            
+          </div>
+          <div class="test-item passed">
+            <div class="test-header">
+              <div class="test-title">TC-006-alt: should complete full login flow and verify dashboard access</div>
+              <div class="test-duration">10.18s</div>
+            </div>
+            
+            
+          </div>
+          </div>
+        </div>
+        <div class="suite">
+          <div class="suite-header">
+            <h2>firefox &gt; login\login.spec.ts &gt; Login Automation &gt; General Login Tests</h2>
+            <div class="suite-stats">
+              <span class="passed">✓ 4</span>
+              <span class="failed">✗ 0</span>
+              <span class="skipped">⊘ 0</span>
+            </div>
+          </div>
+          <div class="suite-content">
+            
+          <div class="test-item passed">
+            <div class="test-header">
+              <div class="test-title">TC-003: should display error message for invalid password</div>
+              <div class="test-duration">6.21s</div>
+            </div>
+            
+            
+          </div>
+          <div class="test-item passed">
+            <div class="test-header">
+              <div class="test-title">TC-005: should navigate to login page correctly</div>
+              <div class="test-duration">2.47s</div>
+            </div>
+            
+            
+          </div>
+          <div class="test-item passed">
+            <div class="test-header">
+              <div class="test-title">TC-002: should display error message for invalid email</div>
+              <div class="test-duration">10.60s</div>
+            </div>
+            
+            
+          </div>
+          <div class="test-item passed">
+            <div class="test-header">
+              <div class="test-title">TC-004: should validate required fields</div>
+              <div class="test-duration">5.65s</div>
+            </div>
+            
+            
+          </div>
+          </div>
+        </div>
+        <div class="suite">
+          <div class="suite-header">
+            <h2>firefox &gt; login\login.spec.ts &gt; Login Automation</h2>
+            <div class="suite-stats">
+              <span class="passed">✓ 3</span>
+              <span class="failed">✗ 1</span>
+              <span class="skipped">⊘ 0</span>
+            </div>
+          </div>
+          <div class="suite-content">
+            
+          <div class="test-item passed">
+            <div class="test-header">
+              <div class="test-title">TC-006-alt: should complete full login flow and verify dashboard access</div>
+              <div class="test-duration">18.67s</div>
+            </div>
+            
+            
+          </div>
+          <div class="test-item passed">
+            <div class="test-header">
+              <div class="test-title">TC-007-alt: should logout successfully</div>
+              <div class="test-duration">25.02s</div>
+            </div>
+            
+            
+          </div>
+          <div class="test-item failed">
+            <div class="test-header">
+              <div class="test-title">TC-001: should login successfully with valid credentials</div>
+              <div class="test-duration">27.71s</div>
+            </div>
+            
+          <div class="test-error">TimeoutError: locator.click: Timeout 15000ms exceeded.
+Call log:
+[2m  - waiting for getByRole(&#039;button&#039;, { name: &#039;Continue&#039;, exact: true })[22m
+[2m    - locator resolved to &lt;button class=&quot;w-full flex justify-center items-center gap-2 py-3.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-semibold text-primary-foreground bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary/80 focus:outline-none focus:ring-0 focus:ring-offset-0 transition-all duration-200&quot;&gt;…&lt;/button&gt;[22m
+[2m  - attempting click action[22m
+[2m    - waiting for element to be visible, enabled and stable[22m
+[2m    - element is visible, enabled and stable[22m
+[2m    - scrolling into view if needed[22m
+[2m    - done scrolling[22m
+[2m    - performing click action[22m
+</div>
+        
+            <div class="screenshots">
+            <div class="screenshot" onclick="openModal('../test-results/login-login-Login-Automati-16eba-ully-with-valid-credentials-firefox/test-failed-1.png')">
+              <img src="../test-results/login-login-Login-Automati-16eba-ully-with-valid-credentials-firefox/test-failed-1.png" alt="Screenshot 1" loading="lazy">
+              <div class="screenshot-label">Screenshot 1</div>
+            </div></div>
+          </div>
+          <div class="test-item passed">
+            <div class="test-header">
+              <div class="test-title">TC-001: should login successfully with valid credentials</div>
+              <div class="test-duration">10.20s</div>
+            </div>
+            
+            
+          </div>
+          </div>
+        </div>
+        <div class="suite">
+          <div class="suite-header">
+            <h2>webkit &gt; login\login.spec.ts &gt; Login Automation</h2>
+            <div class="suite-stats">
+              <span class="passed">✓ 2</span>
+              <span class="failed">✗ 3</span>
+              <span class="skipped">⊘ 0</span>
+            </div>
+          </div>
+          <div class="suite-content">
+            
+          <div class="test-item passed">
+            <div class="test-header">
+              <div class="test-title">TC-007-alt: should logout successfully</div>
+              <div class="test-duration">7.77s</div>
+            </div>
+            
+            
+          </div>
+          <div class="test-item failed">
+            <div class="test-header">
+              <div class="test-title">TC-006-alt: should complete full login flow and verify dashboard access</div>
+              <div class="test-duration">16.32s</div>
+            </div>
+            
+          <div class="test-error">Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+Locator: locator(&#039;button[title=&quot;Job Postings&quot;]&#039;)
+Expected: visible
+Timeout: 10000ms
+Error: element(s) not found
+
+Call log:
+[2m  - Expect &quot;toBeVisible&quot; with timeout 10000ms[22m
+[2m  - waiting for locator(&#039;button[title=&quot;Job Postings&quot;]&#039;)[22m
+[2m    3 × locator resolved to &lt;button title=&quot;Job Postings&quot; class=&quot;inline-flex items-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-4 [&amp;_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full justify-center&quot;&gt;…&lt;/button&gt;[22m
+[2m      - unexpected value &quot;hidden&quot;[22m
+[2m    - waiting for&quot; https://login--staging-web-app--fzt5kjl8m2pw.code.run/login&quot; navigation to finish...[22m
+[2m    - navigated to &quot;https://login--staging-web-app--fzt5kjl8m2pw.code.run/login&quot;[22m
+</div>
+        
+            <div class="screenshots">
+            <div class="screenshot" onclick="openModal('../test-results/login-login-Login-Automati-49689-and-verify-dashboard-access-webkit/test-failed-1.png')">
+              <img src="../test-results/login-login-Login-Automati-49689-and-verify-dashboard-access-webkit/test-failed-1.png" alt="Screenshot 1" loading="lazy">
+              <div class="screenshot-label">Screenshot 1</div>
+            </div></div>
+          </div>
+          <div class="test-item failed">
+            <div class="test-header">
+              <div class="test-title">TC-001: should login successfully with valid credentials</div>
+              <div class="test-duration">15.46s</div>
+            </div>
+            
+          <div class="test-error">Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+Locator: locator(&#039;button[title=&quot;Job Postings&quot;]&#039;)
+Expected: visible
+Timeout: 10000ms
+Error: element(s) not found
+
+Call log:
+[2m  - Expect &quot;toBeVisible&quot; with timeout 10000ms[22m
+[2m  - waiting for locator(&#039;button[title=&quot;Job Postings&quot;]&#039;)[22m
+</div>
+        
+            <div class="screenshots">
+            <div class="screenshot" onclick="openModal('../test-results/login-login-Login-Automati-16eba-ully-with-valid-credentials-webkit/test-failed-1.png')">
+              <img src="../test-results/login-login-Login-Automati-16eba-ully-with-valid-credentials-webkit/test-failed-1.png" alt="Screenshot 1" loading="lazy">
+              <div class="screenshot-label">Screenshot 1</div>
+            </div></div>
+          </div>
+          <div class="test-item passed">
+            <div class="test-header">
+              <div class="test-title">TC-001: should login successfully with valid credentials</div>
+              <div class="test-duration">6.07s</div>
+            </div>
+            
+            
+          </div>
+          <div class="test-item failed">
+            <div class="test-header">
+              <div class="test-title">TC-006-alt: should complete full login flow and verify dashboard access</div>
+              <div class="test-duration">16.98s</div>
+            </div>
+            
+          <div class="test-error">Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+Locator: locator(&#039;button[title=&quot;Applicants&quot;]&#039;)
+Expected: visible
+Timeout: 10000ms
+Error: element(s) not found
+
+Call log:
+[2m  - Expect &quot;toBeVisible&quot; with timeout 10000ms[22m
+[2m  - waiting for locator(&#039;button[title=&quot;Applicants&quot;]&#039;)[22m
+[2m    - waiting for navigation to finish...[22m
+[2m    - navigated to &quot;https://login--staging-web-app--fzt5kjl8m2pw.code.run/login&quot;[22m
+</div>
+        
+            <div class="screenshots">
+            <div class="screenshot" onclick="openModal('../test-results/login-login-Login-Automati-49689-and-verify-dashboard-access-webkit-retry1/test-failed-1.png')">
+              <img src="../test-results/login-login-Login-Automati-49689-and-verify-dashboard-access-webkit-retry1/test-failed-1.png" alt="Screenshot 1" loading="lazy">
+              <div class="screenshot-label">Screenshot 1</div>
+            </div></div>
+          </div>
+          </div>
+        </div>
+        <div class="suite">
+          <div class="suite-header">
+            <h2>webkit &gt; login\login.spec.ts &gt; Login Automation &gt; General Login Tests</h2>
+            <div class="suite-stats">
+              <span class="passed">✓ 4</span>
+              <span class="failed">✗ 0</span>
+              <span class="skipped">⊘ 0</span>
+            </div>
+          </div>
+          <div class="suite-content">
+            
+          <div class="test-item passed">
+            <div class="test-header">
+              <div class="test-title">TC-002: should display error message for invalid email</div>
+              <div class="test-duration">4.42s</div>
+            </div>
+            
+            
+          </div>
+          <div class="test-item passed">
+            <div class="test-header">
+              <div class="test-title">TC-004: should validate required fields</div>
+              <div class="test-duration">3.17s</div>
+            </div>
+            
+            
+          </div>
+          <div class="test-item passed">
+            <div class="test-header">
+              <div class="test-title">TC-003: should display error message for invalid password</div>
+              <div class="test-duration">6.00s</div>
+            </div>
+            
+            
+          </div>
+          <div class="test-item passed">
+            <div class="test-header">
+              <div class="test-title">TC-005: should navigate to login page correctly</div>
+              <div class="test-duration">3.71s</div>
+            </div>
+            
+            
+          </div>
+          </div>
+        </div>
+        </div>
+        
+        <div class="footer">
+            <div>Total Duration: 62.99s</div>
+            <div class="environment-info">
+                <span>Browser: Chromium</span>
+                <span>OS: win32</span>
+                <span>Node: v22.17.0</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal" id="imageModal">
+        <span class="close-modal" onclick="closeModal()">&times;</span>
+        <div class="modal-content">
+            <img id="modalImage" src="" alt="Screenshot">
+        </div>
+    </div>
+    
+    <script>
+        // Suite expand/collapse
+        document.querySelectorAll('.suite-header').forEach(header => {
+            header.addEventListener('click', function() {
+                const content = this.nextElementSibling;
+                content.classList.toggle('expanded');
+            });
+        });
+        
+        // Expand all suites by default
+        document.querySelectorAll('.suite-content').forEach(content => {
+            content.classList.add('expanded');
+        });
+        
+        // Image modal
+        function openModal(imgSrc) {
+            const modal = document.getElementById('imageModal');
+            const modalImg = document.getElementById('modalImage');
+            modal.classList.add('active');
+            modalImg.src = imgSrc;
+        }
+        
+        function closeModal() {
+            document.getElementById('imageModal').classList.remove('active');
+        }
+        
+        // Close modal on outside click
+        document.getElementById('imageModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+        
+        // Close modal on ESC key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>

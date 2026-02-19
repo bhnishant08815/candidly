@@ -1,6 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
+const fsp = fs.promises;
+
 // Try to import archiver, but handle if not installed
 let archiver: any;
 try {
@@ -54,34 +56,32 @@ export class ReportPackager {
 
       archive.pipe(output);
 
-      // Add HTML report
-      const latestReport = path.join(this.reportDir, 'latest-report.html');
-      if (fs.existsSync(latestReport)) {
-        archive.file(latestReport, { name: 'test-report.html' });
-      }
-
-      // Add all HTML reports
-      const htmlReports = fs.readdirSync(this.reportDir)
-        .filter(file => file.endsWith('.html'))
-        .map(file => path.join(this.reportDir, file));
-      
-      htmlReports.forEach(report => {
-        archive.file(report, { name: path.basename(report) });
-      });
-
-      // Add screenshots if requested
-      if (includeScreenshots) {
-        const screenshotsDir = path.join(this.reportDir, 'screenshots');
-        if (fs.existsSync(screenshotsDir)) {
-          archive.directory(screenshotsDir, 'screenshots');
+      (async () => {
+        try {
+          const latestReport = path.join(this.reportDir, 'latest-report.html');
+          await fsp.access(latestReport);
+          archive.file(latestReport, { name: 'test-report.html' });
+        } catch {
+          // latest report not found
         }
-      }
-
-      // Add README with instructions
-      const readmeContent = this.generateReadme();
-      archive.append(readmeContent, { name: 'README.txt' });
-
-      archive.finalize();
+        const files = await fsp.readdir(this.reportDir);
+        const htmlReports = files.filter((file: string) => file.endsWith('.html')).map((file: string) => path.join(this.reportDir, file));
+        for (const report of htmlReports) {
+          archive.file(report, { name: path.basename(report) });
+        }
+        if (includeScreenshots) {
+          const screenshotsDir = path.join(this.reportDir, 'screenshots');
+          try {
+            await fsp.access(screenshotsDir);
+            archive.directory(screenshotsDir, 'screenshots');
+          } catch {
+            // no screenshots dir
+          }
+        }
+        const readmeContent = this.generateReadme();
+        archive.append(readmeContent, { name: 'README.txt' });
+        archive.finalize();
+      })().catch(err => reject(err));
     });
   }
 
@@ -123,21 +123,23 @@ Generated: ${new Date().toLocaleString()}
    * Clean up old reports (keep only the last N reports)
    * @param keepCount Number of recent reports to keep
    */
-  cleanupOldReports(keepCount: number = 5): void {
-    const files = fs.readdirSync(this.reportDir)
-      .filter(file => file.endsWith('.html') && file !== 'latest-report.html')
-      .map(file => ({
-        name: file,
-        path: path.join(this.reportDir, file),
-        time: fs.statSync(path.join(this.reportDir, file)).mtime.getTime()
-      }))
-      .sort((a, b) => b.time - a.time);
-
-    const filesToDelete = files.slice(keepCount);
-    filesToDelete.forEach(file => {
-      fs.unlinkSync(file.path);
+  async cleanupOldReports(keepCount: number = 5): Promise<void> {
+    const files = await fsp.readdir(this.reportDir);
+    const withStats = await Promise.all(
+      files
+        .filter((file: string) => file.endsWith('.html') && file !== 'latest-report.html')
+        .map(async (file: string) => {
+          const filePath = path.join(this.reportDir, file);
+          const stat = await fsp.stat(filePath);
+          return { name: file, path: filePath, time: stat.mtime.getTime() };
+        })
+    );
+    const sorted = withStats.sort((a, b) => b.time - a.time);
+    const filesToDelete = sorted.slice(keepCount);
+    for (const file of filesToDelete) {
+      await fsp.unlink(file.path);
       console.log(`🗑️  Deleted old report: ${file.name}`);
-    });
+    }
   }
 }
 

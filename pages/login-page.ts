@@ -57,11 +57,7 @@ export class LoginPage extends BasePage {
     // Wait for page to load
     await this.page.waitForLoadState('domcontentloaded');
     
-    // Wait for email input to be visible
     await expect(this.emailInput).toBeVisible({ timeout: 10000 });
-    
-    // Additional wait for page stability
-    await this.wait(500);
   }
 
   /**
@@ -71,15 +67,8 @@ export class LoginPage extends BasePage {
   async enterEmail(email: string): Promise<void> {
     await expect(this.emailInput).toBeVisible();
     await this.emailInput.fill(email);
-    
-    // Wait a moment for email to be processed
-    await this.wait(500);
-    
-    // Click continue button
     await this.continueButton.click();
-    
-    // Wait for navigation to password page
-    await this.wait(2000);
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 5000 }).catch(() => {});
   }
 
   /**
@@ -87,14 +76,8 @@ export class LoginPage extends BasePage {
    * @param password Password to enter
    */
   async enterPassword(password: string): Promise<void> {
-    // Wait for password field
     await expect(this.passwordInput).toBeVisible({ timeout: 10000 });
     await this.passwordInput.fill(password);
-    
-    // Wait a moment for password to be processed
-    await this.wait(500);
-    
-    // Click sign in button
     await this.signInButton.click();
   }
 
@@ -107,10 +90,7 @@ export class LoginPage extends BasePage {
     await this.navigateToLogin();
     await this.enterEmail(email);
     await this.enterPassword(password);
-    
-    // Wait for network to settle after login
-    await this.waitForNetworkIdle();
-    await this.wait(2000);
+    await this.page.waitForURL((url) => /^\/(admin|dashboard)/i.test(new URL(url).pathname), { timeout: 15000 });
   }
 
   /**

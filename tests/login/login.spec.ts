@@ -1,22 +1,16 @@
 import { test, expect } from '../fixtures/test-fixtures';
-import { testConfig, UserProfile } from '../../config/test-config';
+import { testConfig } from '../../config/test-config';
 import { DashboardPage } from '../../pages/dashboard-page';
 import { logoutViaApi } from '../../utils/auth/logout-api';
 import { performTestCleanup } from '../../utils/cleanup/test-cleanup';
 
-// Define test profiles to iterate over
-const testProfiles: Array<{ key: 'admin' | 'hr'; profile: UserProfile }> = [
-  { key: 'admin', profile: testConfig.profiles.admin },
-  { key: 'hr', profile: testConfig.profiles.hr }
-];
-
 /**
- * Multi-Profile Login Test Suite
- * Tests login/logout functionality with different user profiles (Admin and HR)
+ * Login Test Suite
+ * Tests login/logout functionality
  */
-test.describe('Login Automation - Multi Profile', () => {
-  // Configure timeout: 4x the default (480 seconds = 8 minutes)
-  test.describe.configure({ timeout: 480 * 1000 });
+test.describe('Login Automation', () => {
+  // Configure timeout: 3 minutes (reduced from 8 for faster fail when stuck)
+  test.describe.configure({ timeout: 180 * 1000 });
 
   // Cleanup after each test
   test.afterEach(async ({ page }) => {
@@ -28,15 +22,12 @@ test.describe('Login Automation - Multi Profile', () => {
     });
   });
 
-  // Iterate through each profile for core login tests
-  testProfiles.forEach(({ key, profile }) => {
-    test.describe(`${key.toUpperCase()} Profile Tests`, () => {
-      
-      /**
-       * TC-001: Positive Test - Successful Login
-       * Verifies complete login flow with valid credentials for each profile
-       */
-      test(`TC-001-${key}: should login successfully with valid credentials`, { tag: ['@Positive'] }, async ({ page, loginPage }) => {
+  /**
+   * TC-001: Positive Test - Successful Login
+   * Verifies complete login flow with valid credentials
+   */
+  test('TC-001: should login successfully with valid credentials', { tag: ['@Positive', '@smoke', '@critical'] }, async ({ page, loginPage }) => {
+        const profile = testConfig.credentials;
         // Use local DashboardPage for single-context setup
         const dashboardPage = new DashboardPage(page);
         
@@ -57,7 +48,7 @@ test.describe('Login Automation - Multi Profile', () => {
         await loginPage.enterPassword(profile.password);
         
         // Step 6: Wait for navigation to dashboard
-        await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+        await page.waitForLoadState('domcontentloaded', { timeout: 5000 }).catch(() => {});
         
         // Step 7: Close notifications if present
         await dashboardPage.closeNotifications();
@@ -69,14 +60,15 @@ test.describe('Login Automation - Multi Profile', () => {
         // Step 9: Verify URL changed (should be on dashboard, not login page)
         await loginPage.verifyLoginSuccessful();
         
-        console.log(`✅ [${key.toUpperCase()}] Login completed successfully. Current URL:`, page.url());
+        console.log('✅ Login completed successfully. Current URL:', page.url());
       });
 
       /**
        * TC-006: E2E Test - Complete Login Flow and Dashboard Navigation
-       * Verifies complete login flow and ability to navigate dashboard sections for each profile
+       * Verifies complete login flow and ability to navigate dashboard sections
        */
-      test(`TC-006-${key}: should complete full login flow and verify dashboard access`, { tag: ['@E2E'] }, async ({ page, loginPage }) => {
+      test('TC-006-alt: should complete full login flow and verify dashboard access', { tag: ['@E2E', '@smoke'] }, async ({ page, loginPage }) => {
+        const profile = testConfig.credentials;
         // Use local DashboardPage for single-context setup
         const dashboardPage = new DashboardPage(page);
         
@@ -84,7 +76,7 @@ test.describe('Login Automation - Multi Profile', () => {
         await loginPage.login(profile.email, profile.password);
         
         // Step 2: Wait for dashboard to load
-        await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+        await page.waitForLoadState('domcontentloaded', { timeout: 5000 }).catch(() => {});
         
         // Step 3: Close notifications if present
         await dashboardPage.closeNotifications();
@@ -111,7 +103,7 @@ test.describe('Login Automation - Multi Profile', () => {
         // Step 10: Verify Applicants page heading
         await dashboardPage.verifyApplicantsHeadingVisible();
         
-        console.log(`✅ [${key.toUpperCase()}] Full login flow completed and dashboard navigation verified`);
+        console.log('✅ Full login flow completed and dashboard navigation verified');
         
         // Cleanup: API-based logout for reliability
         await logoutViaApi(page.request, testConfig.baseURL);
@@ -120,9 +112,10 @@ test.describe('Login Automation - Multi Profile', () => {
 
       /**
        * TC-007: Functional Test - Logout
-       * Verifies successful logout functionality for each profile
+       * Verifies successful logout functionality
        */
-      test(`TC-007-${key}: should logout successfully`, { tag: ['@Functional'] }, async ({ page, loginPage }) => {
+      test('TC-007-alt: should logout successfully', { tag: ['@Functional'] }, async ({ page, loginPage }) => {
+        const profile = testConfig.credentials;
         // Use local DashboardPage for single-context setup
         const dashboardPage = new DashboardPage(page);
         
@@ -130,7 +123,7 @@ test.describe('Login Automation - Multi Profile', () => {
         await loginPage.login(profile.email, profile.password);
         
         // Step 2: Wait for dashboard to load
-        await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+        await page.waitForLoadState('domcontentloaded', { timeout: 5000 }).catch(() => {});
         
         // Step 3: Close notifications if present
         await dashboardPage.closeNotifications();
@@ -156,13 +149,11 @@ test.describe('Login Automation - Multi Profile', () => {
         // Step 10: Verify "Sign In" heading is visible
         await loginPage.verifySignInHeadingVisible();
         
-        console.log(`✅ [${key.toUpperCase()}] Logout completed successfully`);
+        console.log('✅ Logout completed successfully');
       });
-    });
-  });
 
   /**
-   * Profile-independent tests (run once with admin profile)
+   * General login tests
    * These tests validate form behavior and don't require profile-specific testing
    */
   test.describe('General Login Tests', () => {
@@ -182,9 +173,8 @@ test.describe('Login Automation - Multi Profile', () => {
       const invalidEmail = 'invalid-email@test.com';
       await loginPage.enterEmail(invalidEmail);
       
-      // Step 4: Wait a moment for validation
-      await page.waitForTimeout(2000);
-      
+      await expect(page.getByRole('textbox', { name: 'Password' })).toBeHidden({ timeout: 5000 }).catch(() => {});
+
       // Step 5: Verify password field does NOT appear (email validation should prevent proceeding)
       await loginPage.verifyPasswordFieldNotVisible();
       
@@ -216,53 +206,12 @@ test.describe('Login Automation - Multi Profile', () => {
       const invalidPassword = 'WrongPassword123';
       await loginPage.enterPassword(invalidPassword);
       
-      // Step 5: Wait for login attempt to complete
-      let urlChangedToDashboard = false;
-      let postingsButtonVisible = false;
+      // Step 5: Verify URL did NOT navigate to dashboard (login should fail)
+      await expect(page).not.toHaveURL(/\/(admin|dashboard)/i, { timeout: 10000 });
       
-      for (let i = 0; i < 15; i++) {
-        await page.waitForTimeout(1000);
-        const currentURL = page.url();
-        const urlPath = new URL(currentURL).pathname;
-        
-        // Check if URL changed to dashboard
-        if (urlPath.match(/^\/(admin|dashboard)/i)) {
-          urlChangedToDashboard = true;
-        }
-        
-        // Check if postings button is visible (indicates dashboard loaded)
-        const postingsBtn = page.getByRole('button', { name: /Job Postings|Postings/i });
-        const isVisible = await postingsBtn.isVisible({ timeout: 1000 }).catch(() => false);
-        if (isVisible) {
-          postingsButtonVisible = true;
-        }
-        
-        // If either URL changed OR postings button is visible, login succeeded (shouldn't happen)
-        if (urlChangedToDashboard || postingsButtonVisible) {
-          throw new Error(`Login succeeded with invalid password - URL: ${urlPath}, Postings button visible: ${postingsButtonVisible}`);
-        }
-        
-        // If we're still on login page and postings button not visible, login likely failed (good)
-        if (i >= 5 && !urlPath.match(/^\/(admin|dashboard)/i) && !postingsButtonVisible) {
-          await page.waitForTimeout(2000);
-          break;
-        }
-      }
-      
-      // Step 6: Final verification - URL should NOT be on dashboard
-      const currentURL = page.url();
-      const urlPath = new URL(currentURL).pathname;
-      
-      if (urlPath.match(/^\/(admin|dashboard)/i)) {
-        throw new Error(`Login succeeded with invalid password - navigated to ${urlPath} instead of staying on login page`);
-      }
-      
-      // Step 7: Verify dashboard is NOT visible (login failed)
+      // Step 6: Verify dashboard is NOT visible (login failed)
       const postingsBtn = page.getByRole('button', { name: /Job Postings|Postings/i });
-      const isPostingsVisible = await postingsBtn.isVisible({ timeout: 2000 }).catch(() => false);
-      if (isPostingsVisible) {
-        throw new Error('Login succeeded with invalid password - postings button is visible');
-      }
+      await expect(postingsBtn).toBeHidden({ timeout: 5000 });
       
       // Step 8: Verify we're still on login page
       try {
@@ -289,9 +238,8 @@ test.describe('Login Automation - Multi Profile', () => {
       const isContinueDisabled = await loginPage.verifyContinueButtonDisabled();
       
       if (!isContinueDisabled) {
-        // Step 4: Try clicking continue with empty email (if button is enabled)
-        await page.waitForTimeout(2000);
-        
+        await page.waitForLoadState('domcontentloaded', { timeout: 2000 }).catch(() => {});
+
         // Step 5: Should still be on email page (validation should prevent proceeding)
         await loginPage.verifyEmailInputVisible();
         

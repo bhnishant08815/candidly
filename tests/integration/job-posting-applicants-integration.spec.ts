@@ -1,5 +1,6 @@
 import { test, expect } from '../fixtures/test-fixtures';
 import { TestDataGenerator } from '../../utils/data/test-data-generator';
+import { TestDataTracker } from '../../utils/data/test-data-tracker';
 import { LoginPage } from '../../pages/login-page';
 import { DashboardPage } from '../../pages/dashboard-page';
 import { JobPostingPage } from '../../pages/job-posting-page';
@@ -33,12 +34,15 @@ test.describe('Job Posting - Applicants Integration Tests', () => {
     applicantsPage = new ApplicantsPage(page);
   });
 
-  test.afterEach(async ({ page }) => {
+  test.afterEach(async ({ page }, testInfo) => {
     await performTestCleanup(page, {
       dashboardPage,
+      jobPostingPage,
+      applicantsPage,
       logoutViaApi: true,
+      deleteCreatedRecords: true,
       verbose: false
-    });
+    }, testInfo.testId);
   });
 
   // ==========================================
@@ -47,7 +51,7 @@ test.describe('Job Posting - Applicants Integration Tests', () => {
   
   test.describe('End-to-End Workflow Tests', () => {
     
-    test('TC-INT01: Create job posting and add applicants to it', async ({ page }) => {
+    test('TC-INT01: Create job posting and add applicants to it', async ({ page }, testInfo) => {
       // Step 1: Create a job posting
       const jobData = TestDataGenerator.generateJobPostingData({
         department: 'Engineering',
@@ -55,7 +59,8 @@ test.describe('Job Posting - Applicants Integration Tests', () => {
       });
 
       await dashboardPage.navigateToPostings();
-      await jobPostingPage.createJobPosting(jobData);
+      const jobId = await jobPostingPage.createJobPosting(jobData);
+      TestDataTracker.track(testInfo.testId, { type: 'jobPosting', identifier: jobId || jobData.title, metadata: { title: jobData.title } });
       
       console.log(`✓ Step 1: Job posting "${jobData.title}" created successfully`);
 
@@ -71,12 +76,14 @@ test.describe('Job Posting - Applicants Integration Tests', () => {
       // Note: The role might need to match exactly or use a different identifier
       // If the role dropdown doesn't show the newly created job, we'll use a known role
       try {
-        await applicantsPage.addApplicant(applicant1Data);
+        const id1 = await applicantsPage.addApplicant(applicant1Data);
+        TestDataTracker.track(testInfo.testId, { type: 'applicant', identifier: String(id1), metadata: { email: String(id1).includes('@') ? String(id1) : undefined, name: String(id1) } });
         console.log(`✓ Step 2a: First applicant added for job posting "${jobData.title}"`);
       } catch (error) {
         // If the new job posting isn't available yet, use a known role
         applicant1Data.role = 'Full Stack Developer';
-        await applicantsPage.addApplicant(applicant1Data);
+        const id1 = await applicantsPage.addApplicant(applicant1Data);
+        TestDataTracker.track(testInfo.testId, { type: 'applicant', identifier: String(id1), metadata: { email: String(id1).includes('@') ? String(id1) : undefined, name: String(id1) } });
         console.log(`✓ Step 2a: First applicant added (using fallback role)`);
       }
 
@@ -89,13 +96,14 @@ test.describe('Job Posting - Applicants Integration Tests', () => {
         resumePath: 'test-resources/Naukri_KaranKhosla[4y_6m].pdf',
         role: applicant1Data.role // Use same role as first applicant
       });
-      await applicantsPage.addApplicant(applicant2Data);
+      const id2 = await applicantsPage.addApplicant(applicant2Data);
+      TestDataTracker.track(testInfo.testId, { type: 'applicant', identifier: String(id2), metadata: { email: String(id2).includes('@') ? String(id2) : undefined, name: String(id2) } });
       console.log(`✓ Step 2b: Second applicant added for the same role`);
 
       console.log('✓ TC-INT01: Complete workflow - Job posting created and applicants added successfully');
     });
 
-    test('TC-INT02: Create multiple job postings and add applicants to each', async ({ page }) => {
+    test('TC-INT02: Create multiple job postings and add applicants to each', async ({ page }, testInfo) => {
       const departments = ['Engineering', 'Product', 'Design'];
       const roles: string[] = [];
 
@@ -107,7 +115,8 @@ test.describe('Job Posting - Applicants Integration Tests', () => {
           department: dept,
           employmentType: 'Full-Time'
         });
-        await jobPostingPage.createJobPosting(jobData);
+        const jobId = await jobPostingPage.createJobPosting(jobData);
+        TestDataTracker.track(testInfo.testId, { type: 'jobPosting', identifier: jobId || jobData.title, metadata: { title: jobData.title } });
         roles.push(jobData.title);
         // Wait for job posting dialog to close
         const dialog = page.getByRole('dialog', { name: /Add New Job Posting/i });
@@ -134,7 +143,8 @@ test.describe('Job Posting - Applicants Integration Tests', () => {
           resumePath: resumeFiles[i],
           role: knownRole
         });
-        await applicantsPage.addApplicant(applicantData);
+        const id = await applicantsPage.addApplicant(applicantData);
+        TestDataTracker.track(testInfo.testId, { type: 'applicant', identifier: String(id), metadata: { email: String(id).includes('@') ? String(id) : undefined, name: String(id) } });
         // Wait for applicant dialog to close before next addition
         const dialog = page.getByRole('dialog', { name: /Add New Applicant/i });
         await expect(dialog).not.toBeVisible({ timeout: 5000 }).catch(() => {
@@ -146,7 +156,7 @@ test.describe('Job Posting - Applicants Integration Tests', () => {
       console.log('✓ TC-INT02: Multiple job postings created and applicants added successfully');
     });
 
-    test('TC-INT03: Create job posting with specific requirements and add matching applicant', async ({ page }) => {
+    test('TC-INT03: Create job posting with specific requirements and add matching applicant', async ({ page }, testInfo) => {
       // Step 1: Create a job posting with specific skills
       const requiredSkills = ['React', 'Node.js', 'TypeScript', 'AWS'];
       const jobData = TestDataGenerator.generateJobPostingData({
@@ -156,7 +166,8 @@ test.describe('Job Posting - Applicants Integration Tests', () => {
       });
 
       await dashboardPage.navigateToPostings();
-      await jobPostingPage.createJobPosting(jobData);
+      const jobId = await jobPostingPage.createJobPosting(jobData);
+      TestDataTracker.track(testInfo.testId, { type: 'jobPosting', identifier: jobId || jobData.title, metadata: { title: jobData.title } });
       console.log(`✓ Created job posting with required skills: ${requiredSkills.join(', ')}`);
 
       // Step 2: Add an applicant with matching skills
@@ -166,13 +177,14 @@ test.describe('Job Posting - Applicants Integration Tests', () => {
         role: 'Full Stack Developer',
         skills: requiredSkills.join(', ') + ', JavaScript, Python, Docker'
       });
-      await applicantsPage.addApplicant(applicantData);
+      const applicantId = await applicantsPage.addApplicant(applicantData);
+      TestDataTracker.track(testInfo.testId, { type: 'applicant', identifier: String(applicantId), metadata: { email: String(applicantId).includes('@') ? String(applicantId) : undefined, name: String(applicantId) } });
       console.log(`✓ Added applicant with matching skills`);
 
       console.log('✓ TC-INT03: Job posting with specific requirements and matching applicant added successfully');
     });
 
-    test('TC-INT04: Create job posting for different experience levels and add matching applicants', async ({ page }) => {
+    test('TC-INT04: Create job posting for different experience levels and add matching applicants', async ({ page }, testInfo) => {
       const experienceLevels = [
         { level: 'Entry Level (0-1 year)', experience: '0', months: '6' },
         { level: 'Mid-Level (3-5 years)', experience: '4', months: '0' },
@@ -188,7 +200,8 @@ test.describe('Job Posting - Applicants Integration Tests', () => {
           employmentType: 'Full-Time',
           experienceLevel: exp.level
         });
-        await jobPostingPage.createJobPosting(jobData);
+        const jobId = await jobPostingPage.createJobPosting(jobData);
+        TestDataTracker.track(testInfo.testId, { type: 'jobPosting', identifier: jobId || jobData.title, metadata: { title: jobData.title } });
         // Wait for job posting dialog to close
         const dialog = page.getByRole('dialog', { name: /Add New Job Posting/i });
         await expect(dialog).not.toBeVisible({ timeout: 5000 }).catch(() => {
@@ -212,7 +225,8 @@ test.describe('Job Posting - Applicants Integration Tests', () => {
           experienceYears: experienceLevels[i].experience,
           experienceMonths: experienceLevels[i].months
         });
-        await applicantsPage.addApplicant(applicantData);
+        const id = await applicantsPage.addApplicant(applicantData);
+        TestDataTracker.track(testInfo.testId, { type: 'applicant', identifier: String(id), metadata: { email: String(id).includes('@') ? String(id) : undefined, name: String(id) } });
         // Wait for applicant dialog to close before next addition
         const dialog = page.getByRole('dialog', { name: /Add New Applicant/i });
         await expect(dialog).not.toBeVisible({ timeout: 5000 }).catch(() => {
@@ -224,7 +238,7 @@ test.describe('Job Posting - Applicants Integration Tests', () => {
       console.log('✓ TC-INT04: Job postings for different experience levels and matching applicants added successfully');
     });
 
-    test('TC-INT05: Create job posting with location and add applicants with matching preferences', async ({ page }) => {
+    test('TC-INT05: Create job posting with location and add applicants with matching preferences', async ({ page }, testInfo) => {
       const locations = ['Remote', 'Gurgaon', 'Bangalore'];
       
       await dashboardPage.navigateToPostings();
@@ -236,7 +250,8 @@ test.describe('Job Posting - Applicants Integration Tests', () => {
           employmentType: 'Full-Time',
           location: location
         });
-        await jobPostingPage.createJobPosting(jobData);
+        const jobId = await jobPostingPage.createJobPosting(jobData);
+        TestDataTracker.track(testInfo.testId, { type: 'jobPosting', identifier: jobId || jobData.title, metadata: { title: jobData.title } });
         // Wait for job posting dialog to close
         const dialog = page.getByRole('dialog', { name: /Add New Job Posting/i });
         await expect(dialog).not.toBeVisible({ timeout: 5000 }).catch(() => {
@@ -258,7 +273,8 @@ test.describe('Job Posting - Applicants Integration Tests', () => {
           resumePath: resumePath,
           role: 'Full Stack Developer'
         });
-        await applicantsPage.addApplicant(applicantData);
+        const id = await applicantsPage.addApplicant(applicantData);
+        TestDataTracker.track(testInfo.testId, { type: 'applicant', identifier: String(id), metadata: { email: String(id).includes('@') ? String(id) : undefined, name: String(id) } });
         // Wait for applicant dialog to close before next addition
         const dialog = page.getByRole('dialog', { name: /Add New Applicant/i });
         await expect(dialog).not.toBeVisible({ timeout: 5000 }).catch(() => {
@@ -269,7 +285,7 @@ test.describe('Job Posting - Applicants Integration Tests', () => {
       console.log('✓ TC-INT05: Job postings with locations and applicants added successfully');
     });
 
-    test('TC-INT06: Create job posting and verify applicant can be assigned to it', async ({ page }) => {
+    test('TC-INT06: Create job posting and verify applicant can be assigned to it', async ({ page }, testInfo) => {
       // Step 1: Create a job posting
       const jobData = TestDataGenerator.generateJobPostingData({
         department: 'Engineering',
@@ -277,7 +293,8 @@ test.describe('Job Posting - Applicants Integration Tests', () => {
       });
 
       await dashboardPage.navigateToPostings();
-      await jobPostingPage.createJobPosting(jobData);
+      const jobId = await jobPostingPage.createJobPosting(jobData);
+      TestDataTracker.track(testInfo.testId, { type: 'jobPosting', identifier: jobId || jobData.title, metadata: { title: jobData.title } });
       console.log(`✓ Created job posting: "${jobData.title}"`);
 
       // Step 2: Add an applicant
@@ -286,7 +303,8 @@ test.describe('Job Posting - Applicants Integration Tests', () => {
         resumePath: 'test-resources/Updated Resume - Karan.pdf',
         role: 'Full Stack Developer' // Using known role
       });
-      await applicantsPage.addApplicant(applicantData);
+      const applicantId = await applicantsPage.addApplicant(applicantData);
+      TestDataTracker.track(testInfo.testId, { type: 'applicant', identifier: String(applicantId), metadata: { email: String(applicantId).includes('@') ? String(applicantId) : undefined, name: String(applicantId) } });
       console.log(`✓ Added applicant`);
 
       // Step 3: Verify both were created successfully
@@ -302,7 +320,7 @@ test.describe('Job Posting - Applicants Integration Tests', () => {
       console.log('✓ TC-INT06: Job posting created and applicant added - workflow verified');
     });
 
-    test('TC-INT07: Create job posting with AI and add applicant with resume', async ({ page }) => {
+    test('TC-INT07: Create job posting with AI and add applicant with resume', async ({ page }, testInfo) => {
       // Step 1: Create AI-powered job posting
       const jobTitle = TestDataGenerator.generateJobTitle('AI Engineer');
       const customLocation = TestDataGenerator.generateCustomLocation();
@@ -318,6 +336,7 @@ test.describe('Job Posting - Applicants Integration Tests', () => {
       await jobPostingPage.clickAIPoweredButton();
       await jobPostingPage.addCustomLocation(customLocation);
       await jobPostingPage.saveAsDraft();
+      TestDataTracker.track(testInfo.testId, { type: 'jobPosting', identifier: jobTitle, metadata: { title: jobTitle } });
       console.log(`✓ Created AI-powered job posting: "${jobTitle}"`);
 
       // Step 2: Add applicant with resume
@@ -326,13 +345,14 @@ test.describe('Job Posting - Applicants Integration Tests', () => {
         resumePath: 'test-resources/Naukri_KaranKhosla[4y_6m].pdf',
         role: 'Full Stack Developer'
       });
-      await applicantsPage.addApplicant(applicantData);
+      const applicantId = await applicantsPage.addApplicant(applicantData);
+      TestDataTracker.track(testInfo.testId, { type: 'applicant', identifier: String(applicantId), metadata: { email: String(applicantId).includes('@') ? String(applicantId) : undefined, name: String(applicantId) } });
       console.log(`✓ Added applicant with resume`);
 
       console.log('✓ TC-INT07: AI-powered job posting and applicant with resume added successfully');
     });
 
-    test('TC-INT08: Create job posting with document upload and add multiple applicants', async ({ page }) => {
+    test('TC-INT08: Create job posting with document upload and add multiple applicants', async ({ page }, testInfo) => {
       // Step 1: Create job posting with document upload
       const jobTitle = TestDataGenerator.generateJobTitle('Salesforce Developer');
 
@@ -348,6 +368,7 @@ test.describe('Job Posting - Applicants Integration Tests', () => {
       await jobPostingPage.uploadDocument('test-resources/Job Title_ Salesforce Developer II.pdf');
       await jobPostingPage.fillCompensation('30-40 LPA');
       await jobPostingPage.saveAsDraft();
+      TestDataTracker.track(testInfo.testId, { type: 'jobPosting', identifier: jobTitle, metadata: { title: jobTitle } });
       console.log(`✓ Created job posting with document upload: "${jobTitle}"`);
 
       // Step 2: Add multiple applicants
@@ -363,7 +384,8 @@ test.describe('Job Posting - Applicants Integration Tests', () => {
           resumePath: resumeFiles[i],
           role: 'Full Stack Developer'
         });
-        await applicantsPage.addApplicant(applicantData);
+        const id = await applicantsPage.addApplicant(applicantData);
+        TestDataTracker.track(testInfo.testId, { type: 'applicant', identifier: String(id), metadata: { email: String(id).includes('@') ? String(id) : undefined, name: String(id) } });
         // Wait for applicant dialog to close before next addition
         const dialog = page.getByRole('dialog', { name: /Add New Applicant/i });
         await expect(dialog).not.toBeVisible({ timeout: 5000 }).catch(() => {
@@ -375,7 +397,7 @@ test.describe('Job Posting - Applicants Integration Tests', () => {
       console.log('✓ TC-INT08: Job posting with document upload and multiple applicants added successfully');
     });
 
-    test('TC-INT09: Create job posting for contract role and add applicant with contract preference', async ({ page }) => {
+    test('TC-INT09: Create job posting for contract role and add applicant with contract preference', async ({ page }, testInfo) => {
       // Step 1: Create contract job posting
       const jobData = TestDataGenerator.generateJobPostingData({
         department: 'Engineering',
@@ -383,7 +405,8 @@ test.describe('Job Posting - Applicants Integration Tests', () => {
       });
 
       await dashboardPage.navigateToPostings();
-      await jobPostingPage.createJobPosting(jobData);
+      const jobId = await jobPostingPage.createJobPosting(jobData);
+      TestDataTracker.track(testInfo.testId, { type: 'jobPosting', identifier: jobId || jobData.title, metadata: { title: jobData.title } });
       console.log(`✓ Created contract job posting: "${jobData.title}"`);
 
       // Step 2: Add applicant
@@ -392,13 +415,14 @@ test.describe('Job Posting - Applicants Integration Tests', () => {
         resumePath: 'test-resources/SimranBansal.pdf',
         role: 'Full Stack Developer'
       });
-      await applicantsPage.addApplicant(applicantData);
+      const applicantId = await applicantsPage.addApplicant(applicantData);
+      TestDataTracker.track(testInfo.testId, { type: 'applicant', identifier: String(applicantId), metadata: { email: String(applicantId).includes('@') ? String(applicantId) : undefined, name: String(applicantId) } });
       console.log(`✓ Added applicant`);
 
       console.log('✓ TC-INT09: Contract job posting and applicant added successfully');
     });
 
-    test('TC-INT10: Create job posting with high salary range and add applicant with matching expectations', async ({ page }) => {
+    test('TC-INT10: Create job posting with high salary range and add applicant with matching expectations', async ({ page }, testInfo) => {
       // Step 1: Create job posting with high compensation
       const jobData = TestDataGenerator.generateJobPostingData({
         department: 'Engineering',
@@ -407,7 +431,8 @@ test.describe('Job Posting - Applicants Integration Tests', () => {
       });
 
       await dashboardPage.navigateToPostings();
-      await jobPostingPage.createJobPosting(jobData);
+      const jobId = await jobPostingPage.createJobPosting(jobData);
+      TestDataTracker.track(testInfo.testId, { type: 'jobPosting', identifier: jobId || jobData.title, metadata: { title: jobData.title } });
       console.log(`✓ Created high-salary job posting: "${jobData.title}"`);
 
       // Step 2: Add applicant with high salary expectations
@@ -418,7 +443,8 @@ test.describe('Job Posting - Applicants Integration Tests', () => {
         currentSalary: '4500000', // 45 LPA
         expectedSalary: '6500000'  // 65 LPA
       });
-      await applicantsPage.addApplicant(applicantData);
+      const applicantId = await applicantsPage.addApplicant(applicantData);
+      TestDataTracker.track(testInfo.testId, { type: 'applicant', identifier: String(applicantId), metadata: { email: String(applicantId).includes('@') ? String(applicantId) : undefined, name: String(applicantId) } });
       console.log(`✓ Added applicant with high salary expectations`);
 
       console.log('✓ TC-INT10: High-salary job posting and applicant with matching expectations added successfully');

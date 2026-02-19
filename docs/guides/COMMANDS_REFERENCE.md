@@ -16,6 +16,7 @@ A comprehensive guide to all commands available in the StrataHire Test Automatio
 - [Reporting Commands](#reporting-commands)
 - [Utility Commands](#utility-commands)
 - [PowerShell Scripts](#powershell-scripts)
+- [Docker](#docker)
 - [Environment Variables](#environment-variables)
 - [Playwright Direct Commands](#playwright-direct-commands)
 
@@ -62,11 +63,20 @@ npx playwright install --with-deps
 ### Run All Tests
 
 ```bash
-# Run all tests in headless mode (default)
+# Run all tests in headless mode (Chromium only, default)
 npm test
 
 # Run all tests with browser visible
 npm run test:all
+
+# Run on all browsers (Chromium, Firefox, WebKit)
+npm run test:all-browsers
+
+# Run smoke tests only (quick sanity check)
+npm run test:smoke
+
+# Run critical path tests only
+npm run test:critical
 
 # Run all tests (headless) with specific flag
 npm test -- --headed
@@ -210,9 +220,9 @@ npx playwright test --grep "TC-A01" --headed
 # Run multiple test cases (pattern matching)
 npx playwright test --grep "TC-JP[01-05]" --headed
 
-# Run test cases by profile
-npx playwright test --grep "HR Profile" --headed
-npx playwright test --grep "Admin Profile" --headed
+# Run test cases by tag
+npx playwright test --grep "@smoke" --headed
+npx playwright test --grep "@E2E" --headed
 ```
 
 ---
@@ -320,8 +330,8 @@ npx playwright test --grep @Integration
 ### Profile Filtering
 
 ```bash
-# Run tests for HR profile only
-npm run test:job-posting:regression -- --profile=hr
+# Run regression tests
+npm run test:job-posting:regression
 
 # Run tests for Admin profile only
 npm run test:job-posting:regression -- --profile=admin
@@ -496,10 +506,10 @@ rm -rf client-reports
 
 ```bash
 # Remove cached authentication states (PowerShell)
-Remove-Item auth-state.json, auth-state-hr.json -ErrorAction SilentlyContinue
+Remove-Item auth-state.json -ErrorAction SilentlyContinue
 
 # Remove cached authentication states (Bash)
-rm -f auth-state.json auth-state-hr.json
+rm -f auth-state.json
 ```
 
 ---
@@ -532,11 +542,36 @@ rm -f auth-state.json auth-state-hr.json
 .\scripts\run-parallel-grep.ps1 -GrepPattern "TC-JP22"
 
 # Run with different grep pattern
-.\scripts\run-parallel-grep.ps1 -GrepPattern "HR Profile"
+.\scripts\run-parallel-grep.ps1 -GrepPattern "@smoke"
 
 # Run with test case range
 .\scripts\run-parallel-grep.ps1 -GrepPattern "TC-JP[01-10]"
 ```
+
+---
+
+## 🐳 Docker
+
+Run tests in a consistent containerized environment (CI or local).
+
+```bash
+# Build the image
+docker compose build
+
+# Run all tests
+docker compose run --rm tests
+
+# Run smoke tests only
+docker compose run --rm smoke
+
+# Run Chromium-only (faster)
+docker compose run --rm chromium
+
+# With environment file
+docker compose --env-file .env run --rm tests
+```
+
+Reports are written to `test-results-docker/`, `playwright-report-docker/`, and `client-reports-docker/`. See `docs/PHASE5_SUMMARY.md` for details.
 
 ---
 
@@ -785,7 +820,7 @@ npm run report:client
 2. **Bash/Git Bash**: Use `VAR=value` for environment variables
 3. **Default Mode**: Tests run in headless mode unless `--headed` flag is used
 4. **Report Generation**: Client reports are generated automatically after test runs
-5. **Authentication State**: Cached in `auth-state.json` and `auth-state-hr.json`
+5. **Authentication State**: Cached in `auth-state.json`
 6. **Test Artifacts**: Stored in `test-results/` directory
 7. **Traces**: Captured on first retry by default (configurable in `playwright.config.ts`)
 

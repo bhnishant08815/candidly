@@ -69,33 +69,11 @@ export const testConfig = {
   timeouts: envConfig.timeouts,
   retries: envConfig.retries,
   
-  // User profiles for multi-profile testing
-  profiles: {
-    admin: {
-      email: process.env.TEST_EMAIL || 'bh.nishant@concret.io',
-      password: process.env.TEST_PASSWORD || 'Candidly@2025',
-      userName: process.env.TEST_USER_NAME || 'Nishant Bhardwaj',
-      initials: 'NB'
-    } as UserProfile,
-    hr: {
-      email: process.env.HR_EMAIL || 'nishant08815@gmail.com',
-      password: process.env.HR_PASSWORD || 'Demo@123',
-      userName: process.env.HR_USER_NAME || 'HR User',
-      initials: 'HU'
-    } as UserProfile
-  },
-  
-  // Backward compatibility: Admin Profile credentials
+  // User credentials
   credentials: {
     email: process.env.TEST_EMAIL || 'bh.nishant@concret.io',
-    password: process.env.TEST_PASSWORD || 'Candidly@2025',
+    password: process.env.TEST_PASSWORD || 'Demo@123',
     userName: process.env.TEST_USER_NAME || 'Nishant Bhardwaj',
-  },
-  // Backward compatibility: HR Profile credentials
-  hrCredentials: {
-    email: process.env.HR_EMAIL || 'nishant08815@gmail.com',
-    password: process.env.HR_PASSWORD || 'Demo@123',
-    userName: process.env.HR_USER_NAME || 'HR User',
   },
   
   // Logout API configuration for API-based logout

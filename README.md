@@ -12,6 +12,7 @@ A comprehensive, enterprise-grade Playwright-based test automation framework des
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
+- [MCP Integration](#mcp-integration)
 - [Framework Architecture](#framework-architecture)
 - [Test Structure](#test-structure)
 - [Running Tests](#running-tests)
@@ -76,7 +77,6 @@ The StrataHire Test Automation Framework is a sophisticated testing solution bui
 - **Performance metrics** tracking
 
 ### 6. **Enterprise Features**
-- **Multi-profile support** - Admin and HR profiles
 - **Environment configuration** - Staging, production, local
 - **CI/CD optimized** - Parallel workers, sharding support
 - **Comprehensive test coverage** - Unit, integration, and regression tests
@@ -213,6 +213,58 @@ npm run report:view
 
 ---
 
+## 🤖 MCP Integration
+
+This framework is **MCP-enabled** for AI-powered test development and debugging!
+
+### What is MCP?
+
+**Model Context Protocol (MCP)** enables AI assistants (like Claude in Cursor) to interact with your test automation framework through:
+
+- **🌐 Browser Automation** - Test directly in browser with Playwright
+- **📁 Smart File Operations** - AI reads/writes test files intelligently
+- **🔧 Git Integration** - Automatic commits and version control
+- **🧠 Sequential Thinking** - Complex problem-solving workflows
+- **💾 Knowledge Memory** - AI remembers your project patterns
+
+### Quick Start with MCP
+
+1. **Restart Cursor** after opening this project
+2. **Ask your AI assistant**:
+   - "Create a new test for applicant filtering"
+   - "Debug the failing test TC-JP15"
+   - "Update the JobPostingPage selectors"
+   - "Generate a test report summary"
+
+### MCP Configuration
+
+The framework includes pre-configured MCP servers:
+- ✅ Playwright (browser automation) - **Uses local installation**
+- ✅ File System (read/write tests)
+- ✅ Git (version control)
+- ✅ Sequential Thinking (complex planning)
+- ✅ Memory (knowledge tracking)
+
+**Configuration file**: `.cursor/mcp.json`
+
+**Important**: The Playwright MCP server uses your local project installation. See [docs/mcp/playwright-fix.md](./docs/mcp/playwright-fix.md) for details.
+
+### Learn More
+
+- **Quick Start**: [docs/mcp/quick-start.md](./docs/mcp/quick-start.md)
+- **Full Guide**: [docs/mcp/configuration.md](./docs/mcp/configuration.md)
+- **Playwright Fix**: [docs/mcp/playwright-fix.md](./docs/mcp/playwright-fix.md)
+
+### Benefits
+
+- ⚡ **3-5x faster** test development
+- 🐛 **Easier debugging** with AI assistance
+- 🔄 **Automated refactoring** across multiple files
+- 📝 **Smart documentation** generation
+- 🧪 **Interactive testing** in browser
+
+---
+
 ## 🏗️ Framework Architecture
 
 ### Directory Structure
@@ -340,7 +392,7 @@ npx playwright test tests/job-posting/job-posting.spec.ts --headed
 npx playwright test --grep "TC-JP22" --headed
 
 # Run by pattern
-npx playwright test --grep "HR Profile" --headed
+npx playwright test --grep "@smoke" --headed
 ```
 
 ### Advanced Execution
@@ -397,7 +449,7 @@ npx playwright test --ui
 npx playwright show-trace trace.zip
 ```
 
-For comprehensive command reference, see [COMMANDS_REFERENCE.md](./docs/COMMANDS_REFERENCE.md).
+For comprehensive command reference, see [docs/guides/COMMANDS_REFERENCE.md](./docs/guides/COMMANDS_REFERENCE.md).
 
 ---
 
@@ -436,7 +488,7 @@ Customize in `config/test-config.ts`:
 - **Base URLs** per environment
 - **Timeouts** (default, network, file upload, action, navigation)
 - **Retry counts** per environment
-- **Credentials** (Admin and HR profiles)
+- **Credentials** (Admin profile)
 
 ### Environment Variables
 
@@ -491,7 +543,7 @@ npm run report:view
 - Timestamped: `client-reports/test-report-{timestamp}.html`
 - Screenshots: `client-reports/screenshots/`
 
-For detailed reporting guide, see [CLIENT_REPORTING_GUIDE.md](./docs/CLIENT_REPORTING_GUIDE.md).
+For detailed reporting guide, see [docs/guides/CLIENT_REPORTING_GUIDE.md](./docs/guides/CLIENT_REPORTING_GUIDE.md).
 
 ### Using Screenshots in Tests
 
@@ -679,7 +731,7 @@ tests/
 ### Authentication State Invalid
 
 **Solution:**
-- Delete `auth-state.json` and `auth-state-hr.json`
+- Delete `auth-state.json`
 - Re-run tests to regenerate state
 - Verify credentials in `config/test-config.ts`
 
@@ -716,22 +768,15 @@ tests/
 
 ---
 
-## 📖 Documentation
+## Documentation
 
-### Comprehensive Guides
+- **[docs/README.md](./docs/README.md)** - Documentation index (guides, MCP, releases)
+- **[docs/guides/COMMANDS_REFERENCE.md](./docs/guides/COMMANDS_REFERENCE.md)** - All test and reporting commands
+- **[docs/guides/CLIENT_REPORTING_GUIDE.md](./docs/guides/CLIENT_REPORTING_GUIDE.md)** - Client reports
+- **[docs/mcp/quick-start.md](./docs/mcp/quick-start.md)** - MCP in 5 minutes
+- **[docs/example-usage.ts](./docs/example-usage.ts)** - Code examples
 
-- **[CLIENT_REPORTING_GUIDE.md](./docs/CLIENT_REPORTING_GUIDE.md)** - Complete guide to generating and sharing client reports
-- **[COMMANDS_REFERENCE.md](./docs/COMMANDS_REFERENCE.md)** - Comprehensive command reference for all test execution scenarios
-
-### Code Examples
-
-- **[example-usage.ts](./docs/example-usage.ts)** - Code examples for framework features
-
-### Configuration Files
-
-- **playwright.config.ts** - Playwright configuration
-- **config/test-config.ts** - Test configuration and credentials
-- **config/selectors.ts** - Centralized selectors
+Configuration: **playwright.config.ts**, **config/test-config.ts**, **config/selectors.ts**
 
 ---
 
@@ -756,7 +801,7 @@ tests/
 - **Total Test Cases**: 100+ test cases
 - **Regression Coverage**: Comprehensive (TC-JP01-TC-JP35, TC-A01-TC-A32)
 - **Integration Tests**: 10+ end-to-end scenarios
-- **Profile Support**: Admin and HR profiles
+- **Profile Support**: Admin profile
 
 ---
 
@@ -810,8 +855,8 @@ ISC
 
 For questions or issues:
 1. Check this README
-2. Review [documentation](./docs/)
-3. Check code examples in `docs/example-usage.ts`
+2. Review [documentation](./docs/README.md)
+3. Check code examples in [docs/example-usage.ts](./docs/example-usage.ts)
 4. Review test files for patterns
 
 ---

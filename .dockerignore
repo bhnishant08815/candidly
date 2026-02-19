@@ -1,0 +1,27 @@
+# Dependencies
+node_modules
+npm-debug.log*
+
+# Test outputs (generated at runtime)
+test-results
+playwright-report
+client-reports
+performance-reports
+*.log
+
+# Auth state (should not be in image)
+auth-state.json
+.env
+.env.*
+
+# Git and IDE
+.git
+.gitignore
+.cursor
+.claude
+*.md
+!README.md
+
+# Misc
+.DS_Store
+*.tgz

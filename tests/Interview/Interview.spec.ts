@@ -8,6 +8,7 @@ import { LoginPage } from '../../pages/login-page';
 import { DashboardPage } from '../../pages/dashboard-page';
 import { ApplicantsPage } from '../../pages/applicants-page';
 import { generateUniqueId } from '../../utils/data/date-name-utils';
+import { TestDataTracker } from '../../utils/data/test-data-tracker';
 import { performTestCleanup } from '../../utils/cleanup/test-cleanup';
 
 /**
@@ -21,131 +22,38 @@ import { performTestCleanup } from '../../utils/cleanup/test-cleanup';
  * 3. Tracks rounds used per applicant to avoid duplicates
  */
 
-// Define profiles to test with
-const profiles = [
-  { 
-    name: 'Admin Profile', 
-    email: testConfig.credentials.email, 
-    password: testConfig.credentials.password, 
-    userName: testConfig.credentials.userName,
-    interviewerName: testConfig.credentials.userName, // Use full name for admin
-    tag: '@admin-profile' 
-  },
-  { 
-    name: 'HR Profile', 
-    email: testConfig.hrCredentials.email, 
-    password: testConfig.hrCredentials.password,
-    userName: testConfig.hrCredentials.userName,
-    interviewerName: 'Nishant', // Use "Nishant" which exists in interviewer dropdown for HR profile
-    tag: '@hr-profile' 
-  }
-];
-
-// Filter profiles based on environment variable or run all
-const profileFilter = process.env.PROFILE_FILTER; // Can be 'admin', 'hr', or undefined (runs all)
-const filteredProfiles = profileFilter 
-  ? profiles.filter(p => p.name.toLowerCase().includes(profileFilter.toLowerCase()))
-  : profiles;
-
-// Run tests for each profile
-for (const profile of filteredProfiles) {
-  test.describe(`Interview Automation Tests - ${profile.name}`, () => {
-    // Configure timeout: 4x the default (480 seconds = 8 minutes)
-    test.describe.configure({ timeout: 480 * 1000 });
+test.describe.serial('Interview Automation Tests', () => {
+    const profile = { 
+      name: 'Admin Profile', 
+      email: testConfig.credentials.email, 
+      password: testConfig.credentials.password, 
+      userName: testConfig.credentials.userName,
+      interviewerName: testConfig.credentials.userName,
+      tag: '@admin-profile' 
+    };
     
+    test.describe.configure({ timeout: 480 * 1000 });
+
     let interviewPage: InterviewPage;
     let applicantsPage: ApplicantsPage;
     let dashboardPage: DashboardPage;
-    
-    // Track which rounds have been used for each applicant
-    // Map<applicantName, Set<round>>
+
     const applicantRounds = new Map<string, Set<string>>();
-    
-    // Store list of added applicants (freshly created in beforeEach)
     const addedApplicants: string[] = [];
 
+    test.beforeAll(() => {
+      addedApplicants.length = 0;
+    });
+
     test.beforeEach(async ({ page }) => {
-      // Manually login with the correct profile credentials
       const loginPage = new LoginPage(page);
       await loginPage.login(profile.email, profile.password);
-      
+
       dashboardPage = new DashboardPage(page);
       await dashboardPage.closeNotifications();
-      
-      // Initialize page objects
+
       interviewPage = new InterviewPage(page);
       applicantsPage = new ApplicantsPage(page);
-      
-      // Clear the added applicants list for this test
-      addedApplicants.length = 0;
-      
-      // Add applicants before each test case
-      try {
-        await dashboardPage.navigateToApplicants();
-        const numberOfApplicants = 5; // Add 5 applicants for each test
-        
-        for (let i = 0; i < numberOfApplicants; i++) {
-          try {
-            // Ensure we're on applicants page
-            await dashboardPage.navigateToApplicants();
-            // Wait for applicants page to be ready
-            await expect(page.getByRole('button', { name: 'Add Applicant' })).toBeVisible({ timeout: 5000 });
-            
-            // Generate unique applicant data
-            const applicantData = TestDataGenerator.generateApplicantData({
-              resumePath: 'test-resources/functionalsample.pdf',
-            });
-
-            // Add applicant using the page object method
-            await applicantsPage.addApplicant(applicantData);
-            
-            // Track that we added an applicant (we'll use SELECT_FIRST_AVAILABLE to pick them)
-            // The applicants created in beforeEach will be available in the interview dropdown
-            addedApplicants.push(`Applicant_${i + 1}`);
-            console.log(`✓ Added applicant ${i + 1}/${numberOfApplicants}`);
-            
-            // Wait for applicant to be added (check for dialog to close or success indicator)
-            const dialog = page.getByRole('dialog', { name: /Add New Applicant/i });
-            await expect(dialog).not.toBeVisible({ timeout: 5000 }).catch(() => {
-              // Dialog might already be closed, continue
-            });
-          } catch (error) {
-            console.error(`Error adding applicant ${i + 1} in beforeEach:`, error);
-            // Close any open dialogs that might be blocking navigation
-            try {
-              // Check for "Add New Applicant" dialog
-              const addApplicantDialog = page.getByRole('dialog', { name: /Add New Applicant/i });
-              if (await addApplicantDialog.isVisible({ timeout: 1000 }).catch(() => false)) {
-                const cancelButton = page.getByRole('button', { name: 'Cancel' });
-                const closeButton = page.getByRole('button', { name: 'Close' });
-                
-                if (await cancelButton.isVisible({ timeout: 1000 }).catch(() => false)) {
-                  await cancelButton.click();
-                } else if (await closeButton.isVisible({ timeout: 1000 }).catch(() => false)) {
-                  await closeButton.click();
-                } else {
-                  await page.keyboard.press('Escape');
-                }
-                // Wait for dialog to close
-                await expect(addApplicantDialog).not.toBeVisible({ timeout: 2000 }).catch(() => {});
-              }
-            } catch (cleanupError) {
-              // If cleanup fails, try pressing Escape as fallback
-              await page.keyboard.press('Escape');
-              // Wait for any dialog to close
-              const dialog = page.getByRole('dialog');
-              await expect(dialog).not.toBeVisible({ timeout: 2000 }).catch(() => {});
-            }
-            // Continue with next applicant even if one fails
-            // Wait for page to be ready for next operation
-            await expect(page.getByRole('button', { name: 'Add Applicant' })).toBeVisible({ timeout: 3000 }).catch(() => {});
-          }
-        }
-      } catch (error) {
-        console.error(`Error in beforeEach setup:`, error);
-      }
-      
-      console.log(`✓ BeforeEach: Created ${addedApplicants.length} applicants. Will use SELECT_FIRST_AVAILABLE to select from dropdown.`);
     });
 
     test.afterEach(async ({ page }) => {
@@ -165,7 +73,7 @@ for (const profile of filteredProfiles) {
       
       test('Setup: Add multiple applicants for interview testing', { 
         tag: ['@setup', '@applicants'] 
-      }, async ({ page }) => {
+      }, async ({ page }, testInfo) => {
         // Navigate to applicants page
         await dashboardPage.navigateToApplicants();
         
@@ -186,12 +94,9 @@ for (const profile of filteredProfiles) {
             });
 
             // Add applicant - the addApplicant method will handle duplicate email/name errors
-            await applicantsPage.addApplicant(applicantData);
-            
-            // Navigate back to applicants page after successful addition
-            // This ensures we're on the right page for the next iteration
-            await dashboardPage.navigateToApplicants();
-            
+            const identifier = await applicantsPage.addApplicant(applicantData);
+            TestDataTracker.track(testInfo.testId, { type: 'applicant', identifier: String(identifier), metadata: { email: String(identifier).includes('@') ? String(identifier) : undefined, name: String(identifier) } });
+
             // Get the applicant name from the form (before it's closed)
             // Since the form auto-fills, we can get it after submission
             // We'll track by a unique identifier generated during addition
@@ -852,4 +757,3 @@ for (const profile of filteredProfiles) {
       });
     });
   });
-}

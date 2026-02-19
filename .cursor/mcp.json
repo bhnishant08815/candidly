@@ -1,0 +1,40 @@
+{
+  "$schema": "https://raw.githubusercontent.com/modelcontextprotocol/servers/main/schemas/mcp.schema.json",
+  "mcpServers": {
+    "playwright": {
+      "command": "node",
+      "args": [
+        "node_modules/@executeautomation/playwright-mcp-server/dist/index.js"
+      ],
+      "description": "Playwright MCP server for browser automation and testing - using local installation",
+      "env": {
+        "PLAYWRIGHT_BROWSERS_PATH": "0"
+      }
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "c:\\Users\\Lenovo\\Desktop\\StrataHire"
+      ],
+      "description": "File system access for reading and writing test files, reports, and configurations"
+    },
+    "sequential-thinking": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ],
+      "description": "Sequential thinking server for complex test planning and debugging workflows"
+    },
+    "memory": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-memory"
+      ],
+      "description": "Knowledge graph memory for tracking test patterns, common issues, and solutions"
+    }
+  }
+}

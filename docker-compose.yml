@@ -1,0 +1,43 @@
+# StrataHire Test Automation - Docker Compose
+# Run tests in a container with consistent environment
+
+services:
+  tests:
+    build: .
+    image: stratahire-tests:latest
+    environment:
+      - CI=1
+      - TEST_ENV=${TEST_ENV:-staging}
+      - BASE_URL=${BASE_URL:-}
+      - TEST_EMAIL=${TEST_EMAIL:-}
+      - TEST_PASSWORD=${TEST_PASSWORD:-}
+    # Override default command for different run types
+    # Default: full test run
+    command: npx playwright test --reporter=list
+    volumes:
+      # Mount reports out so you can inspect after run
+      - ./test-results-docker:/app/test-results
+      - ./playwright-report-docker:/app/playwright-report
+      - ./client-reports-docker:/app/client-reports
+
+  # Smoke tests only (quick run)
+  smoke:
+    build: .
+    image: stratahire-tests:latest
+    environment:
+      - CI=1
+      - TEST_ENV=${TEST_ENV:-staging}
+      - TEST_EMAIL=${TEST_EMAIL:-}
+      - TEST_PASSWORD=${TEST_PASSWORD:-}
+    command: npx playwright test --grep @smoke --reporter=list
+
+  # Chromium only (faster than full cross-browser)
+  chromium:
+    build: .
+    image: stratahire-tests:latest
+    environment:
+      - CI=1
+      - TEST_ENV=${TEST_ENV:-staging}
+      - TEST_EMAIL=${TEST_EMAIL:-}
+      - TEST_PASSWORD=${TEST_PASSWORD:-}
+    command: npx playwright test --project=chromium --reporter=list

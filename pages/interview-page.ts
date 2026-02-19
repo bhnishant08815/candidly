@@ -64,45 +64,24 @@ export class InterviewPage extends BasePage {
     const isAlreadyOnPage = await this.scheduleInterviewButton().isVisible({ timeout: 2000 }).catch(() => false);
     if (isAlreadyOnPage) {
       // Already on the page, just wait for it to be stable
-      await this.wait(500);
+      await this.page.waitForLoadState('domcontentloaded', { timeout: 1000 }).catch(() => {});
       return;
     }
     
-    // Check for and close any open dialogs that might block navigation
-    // 1. Check for "Add New Applicant" dialog
-    const addApplicantDialog = this.page.getByRole('dialog', { name: /Add New Applicant/i });
-    const isAddApplicantDialogOpen = await addApplicantDialog.isVisible({ timeout: 2000 }).catch(() => false);
-    
-    if (isAddApplicantDialogOpen) {
-      // Try to close using Cancel or Close button
-      const cancelButton = this.page.getByRole('button', { name: 'Cancel' });
-      const closeButton = this.page.getByRole('button', { name: 'Close' });
-      
-      if (await cancelButton.isVisible({ timeout: 1000 }).catch(() => false)) {
-        await cancelButton.click();
-        await this.wait(500);
-      } else if (await closeButton.isVisible({ timeout: 1000 }).catch(() => false)) {
-        await closeButton.click();
-        await this.wait(500);
-      } else {
-        // Fallback: press Escape
-        await this.page.keyboard.press('Escape');
-        await this.wait(500);
-      }
-    }
-    
-    // 2. Check for interview scheduling dialog (Back button)
+    await this.closeDialogIfOpen(/Add New Applicant/i);
+
+    // Check for interview scheduling dialog (Back button)
     const backButton = this.page.getByRole('button', { name: 'Back' });
     const isInterviewDialogOpen = await backButton.isVisible({ timeout: 2000 }).catch(() => false);
     
     if (isInterviewDialogOpen) {
       await backButton.click();
-      await this.wait(500);
+      await this.page.waitForLoadState('domcontentloaded', { timeout: 1000 }).catch(() => {});
     }
     
     // 3. Try pressing Escape as final fallback to close any remaining modals
     await this.page.keyboard.press('Escape');
-    await this.wait(300);
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 500 }).catch(() => {});
     
     // Wait for the Interviews button to be visible (might be in navigation)
     await expect(this.interviewsButtonLocator).toBeVisible({ timeout: 10000 });
@@ -112,7 +91,7 @@ export class InterviewPage extends BasePage {
     
     // Wait for the interviews page to load by checking for the schedule button
     await expect(this.scheduleInterviewButtonLocator).toBeVisible({ timeout: 15000 });
-    await this.wait(1000); // Additional wait for page stability
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 2000 }).catch(() => {}); // Additional wait for page stability
   }
 
   /**
@@ -127,7 +106,7 @@ export class InterviewPage extends BasePage {
       // Navigate back to interviews page if we're not there
       await this.navigateToInterviews();
       // Wait a bit for the page to stabilize
-      await this.wait(1000);
+      await this.page.waitForLoadState('domcontentloaded', { timeout: 2000 }).catch(() => {});
     }
     
     // Wait for any previous blocking notifications to disappear
@@ -141,7 +120,7 @@ export class InterviewPage extends BasePage {
       // If visible, wait for it to disappear
       await expect(successToast).toBeHidden({ timeout: 10000 });
       // Small buffer to ensure overlay is completely gone
-      await this.wait(500);
+      await this.page.waitForLoadState('domcontentloaded', { timeout: 1000 }).catch(() => {});
     }
 
     // Wait for the schedule button to be visible and enabled with increased timeout
@@ -149,7 +128,7 @@ export class InterviewPage extends BasePage {
     await expect(this.scheduleInterviewButtonLocator).toBeEnabled({ timeout: 5000 });
     
     // Small wait to ensure button is fully interactive
-    await this.wait(300);
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 500 }).catch(() => {});
     
     await this.scheduleInterviewButtonLocator.click();
     // Wait for dialog to appear by checking for the applicant selector button
@@ -162,12 +141,12 @@ export class InterviewPage extends BasePage {
    */
   async selectApplicant(applicantName: string): Promise<void> {
     await this.selectApplicantButton().click();
-    await this.wait(500);
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 1000 }).catch(() => {});
     
     const applicantOption = this.page.getByRole('button', { name: new RegExp(applicantName, 'i') });
     await expect(applicantOption).toBeVisible();
     await applicantOption.click();
-    await this.wait(500);
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 1000 }).catch(() => {});
   }
 
   /**
@@ -176,7 +155,7 @@ export class InterviewPage extends BasePage {
    */
   async selectMainInterviewer(interviewerName: string): Promise<void> {
     await this.selectMainInterviewerButton().click();
-    await this.wait(500);
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 1000 }).catch(() => {});
     
     // Wait for the dropdown dialog to be visible
     const dialog = this.page.getByRole('dialog');
@@ -188,7 +167,7 @@ export class InterviewPage extends BasePage {
     // Wait for the option to be visible with a reasonable timeout
     await expect(interviewerOption).toBeVisible({ timeout: 5000 });
     await interviewerOption.click();
-    await this.wait(500);
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 1000 }).catch(() => {});
   }
 
   /**
@@ -197,7 +176,7 @@ export class InterviewPage extends BasePage {
    */
   async selectAdditionalInterviewers(interviewerNames: string[]): Promise<void> {
     await this.selectAdditionalInterviewerButton().click();
-    await this.wait(500);
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 1000 }).catch(() => {});
     
     // Wait for the dialog to be visible
     const dialog = this.page.getByRole('dialog');
@@ -209,12 +188,12 @@ export class InterviewPage extends BasePage {
       const interviewer = this.page.getByRole('checkbox', { name: new RegExp(name, 'i') });
       await expect(interviewer).toBeVisible({ timeout: 5000 });
       await interviewer.click();
-      await this.wait(300);
+      await this.page.waitForLoadState('domcontentloaded', { timeout: 500 }).catch(() => {});
     }
     
     // Close the dropdown by clicking outside or pressing Escape
     await this.page.keyboard.press('Escape');
-    await this.wait(500);
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 1000 }).catch(() => {});
   }
 
   /**
@@ -224,7 +203,7 @@ export class InterviewPage extends BasePage {
     const selectedButton = this.page.getByRole('button', { name: /interviewer\(s\) selected/i });
     if (await selectedButton.isVisible({ timeout: 2000 }).catch(() => false)) {
       await selectedButton.click();
-      await this.wait(500);
+      await this.page.waitForLoadState('domcontentloaded', { timeout: 1000 }).catch(() => {});
     }
   }
 
@@ -234,7 +213,7 @@ export class InterviewPage extends BasePage {
    */
   async setInterviewDate(date: string): Promise<void> {
     await this.interviewDateInput().fill(date);
-    await this.wait(300);
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 500 }).catch(() => {});
   }
 
   /**
@@ -252,7 +231,7 @@ export class InterviewPage extends BasePage {
     // Wait for the button to be visible with a reasonable timeout
     await expect(timeButton).toBeVisible({ timeout: 5000 });
     await timeButton.click();
-    await this.wait(300);
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 500 }).catch(() => {});
   }
 
   /**
@@ -262,12 +241,12 @@ export class InterviewPage extends BasePage {
   async selectInterviewRound(round: string): Promise<void> {
     const roundDropdown = this.page.getByRole('combobox').filter({ hasText: 'Select interview round' });
     await roundDropdown.click();
-    await this.wait(300);
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 500 }).catch(() => {});
     
     const roundOption = this.page.getByRole('option', { name: round, exact: true });
     await expect(roundOption).toBeVisible();
     await roundOption.click();
-    await this.wait(300);
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 500 }).catch(() => {});
   }
 
   /**
@@ -322,7 +301,7 @@ export class InterviewPage extends BasePage {
    */
   async submitSchedule(): Promise<void> {
     await this.scheduleButtonLocator.click();
-    await this.wait(1000);
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 2000 }).catch(() => {});
     
     // Check for duplicate interview error after submission
     const hasDuplicateError = await this.checkForDuplicateInterviewError();
@@ -336,9 +315,9 @@ export class InterviewPage extends BasePage {
    */
   async sendInterviewEmail(): Promise<void> {
     await this.sendEmailButton().first().click();
-    await this.wait(500);
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 1000 }).catch(() => {});
     await this.sendEmailButton().click();
-    await this.wait(1000);
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 2000 }).catch(() => {});
   }
 
   /**
@@ -349,16 +328,16 @@ export class InterviewPage extends BasePage {
   async deleteInterview(interviewId: string, confirmText: string): Promise<void> {
     const row = this.page.getByRole('row', { name: new RegExp(interviewId, 'i') });
     await row.getByLabel('Delete').click();
-    await this.wait(500);
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 1000 }).catch(() => {});
     
     // Fill confirmation text
     const confirmInput = this.page.getByRole('textbox', { name: new RegExp(confirmText, 'i') });
     await confirmInput.fill(confirmText);
-    await this.wait(300);
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 500 }).catch(() => {});
     
     // Confirm deletion
     await this.deleteInterviewButton().click();
-    await this.wait(1000);
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 2000 }).catch(() => {});
   }
 
   /**
@@ -369,7 +348,7 @@ export class InterviewPage extends BasePage {
     await expect(this.selectApplicantButton()).toBeVisible();
     await expect(this.selectApplicantButton()).toBeEnabled();
     await this.selectApplicantButton().click();
-    await this.wait(500);
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 1000 }).catch(() => {});
     
     // Wait for the dropdown dialog to be visible
     const dialog = this.page.getByRole('dialog');
@@ -388,10 +367,10 @@ export class InterviewPage extends BasePage {
     } else {
       // Fallback to keyboard navigation if no email button found
       await this.page.keyboard.press('ArrowDown');
-      await this.wait(200);
+      await this.page.waitForLoadState('domcontentloaded', { timeout: 400 }).catch(() => {});
       await this.page.keyboard.press('Enter');
     }
-    await this.wait(500);
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 1000 }).catch(() => {});
   }
 
   /**
@@ -403,7 +382,7 @@ export class InterviewPage extends BasePage {
     await expect(this.selectApplicantButton()).toBeVisible();
     await expect(this.selectApplicantButton()).toBeEnabled();
     await this.selectApplicantButton().click();
-    await this.wait(500);
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 1000 }).catch(() => {});
     
     // Wait for the dropdown to be visible
     const dialog = this.page.getByRole('dialog');
@@ -426,7 +405,7 @@ export class InterviewPage extends BasePage {
     // Get the applicant name before clicking
     const applicantText = await selectedOption.textContent();
     await selectedOption.click();
-    await this.wait(500);
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 1000 }).catch(() => {});
     
     // Extract applicant name (format: "Name • email@domain.com")
     const applicantName = applicantText?.split('•')[0]?.trim() || 'Unknown Applicant';
@@ -443,7 +422,7 @@ export class InterviewPage extends BasePage {
     
     if (await firstDelete.isVisible()) {
       await firstDelete.click();
-      await this.wait(500);
+      await this.page.waitForLoadState('domcontentloaded', { timeout: 1000 }).catch(() => {});
       
       // Handle confirmation
       // Based on user pattern: copy from first textbox and fill into confirmation input
@@ -454,10 +433,10 @@ export class InterviewPage extends BasePage {
         // Type the text into the focused input (confirmation field)
         // or try to find the confirmation input
         await this.page.keyboard.type(textToMatch);
-        await this.wait(300);
+        await this.page.waitForLoadState('domcontentloaded', { timeout: 500 }).catch(() => {});
         
         await this.deleteInterviewButton().click();
-        await this.wait(1000);
+        await this.page.waitForLoadState('domcontentloaded', { timeout: 2000 }).catch(() => {});
       } catch (error) {
         console.error('Error handling delete confirmation:', error);
         throw error;
@@ -505,10 +484,10 @@ export class InterviewPage extends BasePage {
       if (error instanceof Error && error.message.includes('DUPLICATE INTERVIEW ERROR')) {
         // Try to close the dialog by pressing Escape
         await this.page.keyboard.press('Escape');
-        await this.wait(500);
+        await this.page.waitForLoadState('domcontentloaded', { timeout: 1000 }).catch(() => {});
         // Close any error notifications
         await this.closeSuccessNotification();
-        await this.wait(500);
+        await this.page.waitForLoadState('domcontentloaded', { timeout: 1000 }).catch(() => {});
       }
       // Rethrow the error to prevent retrying with the same details
       throw error;
@@ -558,7 +537,7 @@ export class InterviewPage extends BasePage {
       if (isVisible) {
         // Click the close button to dismiss the notification
         await closeButton.click({ force: true });
-        await this.wait(500);
+        await this.page.waitForLoadState('domcontentloaded', { timeout: 1000 }).catch(() => {});
       } else {
         // Try alternative approach - find button containing the SVG
         const altCloseButton = this.page.locator("button").filter({ 
@@ -568,7 +547,7 @@ export class InterviewPage extends BasePage {
         const altVisible = await altCloseButton.isVisible({ timeout: 2000 }).catch(() => false);
         if (altVisible) {
           await altCloseButton.click({ force: true });
-          await this.wait(500);
+          await this.page.waitForLoadState('domcontentloaded', { timeout: 1000 }).catch(() => {});
         }
       }
     } catch (error) {
@@ -585,7 +564,7 @@ export class InterviewPage extends BasePage {
    */
   async verifyInterviewScheduled(): Promise<void> {
     // Wait for the page to stabilize after form submission
-    await this.wait(2000);
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 3000 }).catch(() => {});
     
     // Wait for success toast to appear (indicates interview was created)
     const notificationRegion = this.page.getByRole('region', { name: /Notifications/ });
@@ -600,7 +579,7 @@ export class InterviewPage extends BasePage {
     await this.closeSuccessNotification();
     
     // Wait a bit for the notification to close
-    await this.wait(1000);
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 2000 }).catch(() => {});
     
     // Wait for toast to disappear (if it hasn't already)
     await expect(successToast).toBeHidden({ timeout: 10000 }).catch(() => {
@@ -608,7 +587,7 @@ export class InterviewPage extends BasePage {
     });
     
     // Wait for page to fully stabilize
-    await this.wait(1000);
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 2000 }).catch(() => {});
     
     // Check if we're still on the interviews page by looking for the schedule button
     const isOnInterviewsPage = await this.scheduleInterviewButton().isVisible({ timeout: 3000 }).catch(() => false);
@@ -626,19 +605,19 @@ export class InterviewPage extends BasePage {
       if (interviewsButtonVisible) {
         // Navigate back to interviews page
         await this.interviewsButton().click();
-        await this.wait(1000);
+        await this.page.waitForLoadState('domcontentloaded', { timeout: 2000 }).catch(() => {});
         await expect(this.scheduleInterviewButton()).toBeVisible({ timeout: 15000 });
       } else {
         // Page might be in a loading state or somewhere unexpected
         // Wait and try again
         console.log('Interviews button not visible, waiting for page to load');
-        await this.wait(2000);
+        await this.page.waitForLoadState('domcontentloaded', { timeout: 3000 }).catch(() => {});
         
         // Try clicking on Interviews button one more time
         const retryInterviewsButton = await this.interviewsButton().isVisible({ timeout: 5000 }).catch(() => false);
         if (retryInterviewsButton) {
           await this.interviewsButton().click();
-          await this.wait(1000);
+          await this.page.waitForLoadState('domcontentloaded', { timeout: 2000 }).catch(() => {});
         }
         
         // Final check for schedule button

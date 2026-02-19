@@ -2,9 +2,12 @@ node_modules/
 dist/
 test-results/
 playwright-report/
+performance-reports/
 playwright/.cache/
 .env
 *.log
 auth-state.json
-auth-state-hr.json
 
+# MCP Configuration (tracked for team sharing)
+# .cursor/mcp.json is tracked
+# Add .cursor/mcp.local.json to .gitignore for personal overrides
